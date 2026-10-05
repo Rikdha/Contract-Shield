@@ -1,0 +1,8 @@
+{
+  "name": "Contract Shield",
+  "description": "Next-generation contract security and vulnerability auditor for Web3 smart contracts and commercial legal agreements.",
+  "permissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
