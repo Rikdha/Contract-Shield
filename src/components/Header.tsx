@@ -20,7 +20,6 @@ interface HeaderProps {
   setActiveTab: (tab: AppNavTab) => void;
   currentUser: User;
   onOpenUpload: () => void;
-  onSwitchRole: (role: UserRole) => void;
   onLogout: () => void;
 }
 
@@ -29,7 +28,6 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   currentUser,
   onOpenUpload,
-  onSwitchRole,
   onLogout,
 }) => {
   return (
@@ -39,18 +37,18 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Brand */}
           <div 
             className="flex items-center space-x-3 cursor-pointer shrink-0" 
-            onClick={() => setActiveTab('auditor')}
+            onClick={() => setActiveTab('dashboard')}
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/30 text-cyan-300">
+            <div className="flex items-center justify-center w-8 h-8 rounded-md bg-slate-900 border border-slate-800 text-slate-200">
               <Shield className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-semibold text-base tracking-tight text-white font-heading">
+                <span className="font-bold text-sm tracking-tight text-white font-heading">
                   ContractShield
                 </span>
                 <span className="text-[11px] text-slate-500 font-normal">
-                  / Enterprise
+                  / Enterprise Governance
                 </span>
               </div>
             </div>
@@ -149,45 +147,48 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action & User Profile Section */}
           <div className="flex items-center space-x-3">
-            {currentUser.role !== 'Viewer' && (
+            {currentUser.role !== 'Viewer' && currentUser.role !== 'User' && (
               <button
                 onClick={onOpenUpload}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium transition shadow-sm"
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-medium transition border border-slate-700"
               >
-                <Upload className="w-3.5 h-3.5" />
+                <Upload className="w-3.5 h-3.5 text-slate-300" />
                 <span className="hidden sm:inline">Ingest Contract</span>
               </button>
             )}
 
             {/* Quiet, unboxed user information */}
-            <div className="flex items-center space-x-2 text-xs border-l border-slate-800 pl-3">
+            <div className="flex items-center space-x-2.5 text-xs border-l border-slate-800 pl-3">
               <div className="text-right hidden sm:block">
                 <div className="text-xs font-medium text-slate-200 leading-tight">
                   {currentUser.name}
                 </div>
-                <div className="text-[10px] text-slate-500">
-                  {currentUser.organization || 'Workspace'}
+                <div className="text-[10px] text-slate-500 font-mono">
+                  {currentUser.email}
                 </div>
               </div>
 
-              {/* Minimal role selector */}
-              <select
-                value={currentUser.role}
-                onChange={(e) => onSwitchRole(e.target.value as UserRole)}
-                className="bg-slate-900 text-slate-300 text-[11px] px-2 py-1 rounded border border-slate-800 focus:outline-none focus:border-slate-700 cursor-pointer"
-                title="Switch active role"
+              {/* Static role badge (role is strictly bound to account) */}
+              <span
+                className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded font-medium border tracking-wider select-none ${
+                  currentUser.role === 'Admin'
+                    ? 'bg-slate-800 text-slate-200 border-slate-700'
+                    : currentUser.role === 'Analyst'
+                    ? 'bg-sky-950/60 text-sky-300 border-sky-800/60'
+                    : 'bg-emerald-950/60 text-emerald-300 border-emerald-800/60'
+                }`}
+                title={`Role: ${currentUser.role}`}
               >
-                <option value="Admin">Admin</option>
-                <option value="Analyst">Analyst</option>
-                <option value="Viewer">Viewer</option>
-              </select>
+                {currentUser.role}
+              </span>
 
               <button
                 onClick={onLogout}
-                className="p-1 rounded text-slate-500 hover:text-slate-300 transition"
-                title="Sign out"
+                className="flex items-center space-x-1 px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 text-xs transition font-medium"
+                title="Sign out and return to Login page"
               >
                 <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Sign Out</span>
               </button>
             </div>
           </div>

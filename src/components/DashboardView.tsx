@@ -425,6 +425,54 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
+          {/* Section F: Indian Legal & Statutory Regulatory Alignment */}
+          <div className="rounded-xl bg-slate-900/50 border border-slate-800/80 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-semibold text-white font-heading">
+                  Indian Statutory Compliance
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800/60">
+                Statutory Active
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Automated audit benchmarks calibrated to Indian legal framework and order:
+            </p>
+
+            <div className="space-y-2 text-[11px] text-slate-300 divide-y divide-slate-800/60 pt-1">
+              <div className="pt-1.5 space-y-0.5">
+                <div className="font-medium text-slate-200">
+                  • Indian Contract Act, 1872 (Section 27 & 73/74)
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  Enforces void ab initio status for post-employment non-competes & bars unilateral penalty damages.
+                </div>
+              </div>
+
+              <div className="pt-1.5 space-y-0.5">
+                <div className="font-medium text-slate-200">
+                  • Digital Personal Data Protection Act (DPDP Act, 2023)
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  Requires verifiable consent; prohibits unauthorized telemetry exploitation & unlicensed AI model training.
+                </div>
+              </div>
+
+              <div className="pt-1.5 space-y-0.5">
+                <div className="font-medium text-slate-200">
+                  • IT Act 2000 (Sec 10A) & BSA 2023 (Sec 63 / Sec 65B)
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  Validates electronic smart contracts with cryptographic SHA-256 certificate hashing for legal admissibility.
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

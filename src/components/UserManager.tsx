@@ -156,6 +156,7 @@ export const UserManager: React.FC<UserManagerProps> = ({
                     >
                       <option value="Admin">Admin</option>
                       <option value="Analyst">Analyst</option>
+                      <option value="User">User</option>
                       <option value="Viewer">Viewer</option>
                     </select>
                   ) : (

@@ -232,44 +232,132 @@ Respond ONLY with valid JSON in this exact structure:
   }
 });
 
-// POST: /api/chat
-app.post('/api/chat', async (req, res) => {
-  const { messages, contractContext } = req.body;
+// POST: /api/audit
+app.post('/api/audit', async (req, res) => {
+  const { code, contractType, title } = req.body || {};
+  const docType = contractType === 'legal_contract' ? 'legal_contract' : 'smart_contract';
+  const docTitle = title || (docType === 'smart_contract' ? 'Smart Contract' : 'Legal Agreement');
+
+  if (!code) {
+    return res.status(400).json({ error: 'Code or document text is required' });
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    const lastMsg = messages?.[messages.length - 1]?.text || '';
-    return res.json({
-      reply: `Legal Analysis: Based on the contract context, this agreement contains significant clauses that should be carefully negotiated. For ${lastMsg.slice(0, 50)}, standard market practice recommends limiting liability to 12 months fees, narrowing non-competes to 6 months non-solicitation, and ensuring mutual termination rights.`,
-    });
+    // 204 allows client-side deterministic analyzer to execute seamlessly
+    return res.status(204).end();
   }
 
   try {
-    const ai = new GoogleGenAI({});
-    const systemPrompt = `You are ContractShield AI Legal Advisor, an elite contract analyst.
-Explain legal nuances in plain English, point out hidden risks, and suggest balanced compromise terms.
-Contract Context:
-${contractContext || 'No specific document active.'}
-`;
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
+    });
 
-    const contents = (messages || []).map((m: any) => ({
-      role: m.role === 'model' ? 'model' : 'user',
-      parts: [{ text: m.text }],
-    }));
+    const prompt = `You are Contract Shield, an elite contract auditor and friendly legal advisor.
+Explain everything in simple, everyday language that non-lawyers and non-technical founders understand.
+Audit the following ${docType === 'smart_contract' ? 'Smart Contract code' : 'Legal Agreement text'}.
+Contract Title: "${docTitle}"
+Document Content:
+\`\`\`
+${code.slice(0, 20000)}
+\`\`\`
+
+Perform an exhaustive security and risk audit. Explain every issue simply. Return a strictly structured JSON response.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
-      contents,
-      config: {
-        systemInstruction: systemPrompt,
-      },
+      contents: prompt,
+      config: { responseMimeType: 'application/json' },
     });
 
-    return res.json({ reply: response.text || 'Unable to generate response.' });
-  } catch (err: any) {
-    console.error('Chat error:', err);
-    return res.status(500).json({ error: 'Failed to process chat message' });
+    const rawText = response.text || '';
+    const result = JSON.parse(rawText.trim());
+
+    return res.json({ success: true, report: result, provider: 'gemini-3.8-flash' });
+  } catch (geminiError: any) {
+    console.warn('Gemini audit API call failed, falling back to client engine:', geminiError?.message);
+    return res.status(204).end();
   }
+});
+
+// POST: /api/chat
+app.post('/api/chat', async (req, res) => {
+  const { messages, enableSearch, contractContext } = req.body || {};
+  const latestUserMsg = messages?.[messages.length - 1]?.text || '';
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey) {
+    try {
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
+      });
+
+      const formattedContents = (messages || []).map((m: any) => ({
+        role: m.role === 'model' ? 'model' : 'user',
+        parts: [{ text: m.text }],
+      }));
+
+      const systemInstruction = `You are ContractShield AI, an empathetic, expert contract advisor and legal companion.
+Your primary mission is to protect regular people, freelancers, students, and startup founders from predatory legal and smart contract clauses.
+CRITICAL COMMUNICATION GUIDELINES:
+1. Explain everything in simple, everyday language. Never use dense legalese or technical acronyms without instantly translating them into plain English.
+2. If explaining a clause, always tell the user: "What this really means for you" and "How to protect yourself / What to ask for instead".
+3. Be reassuring, friendly, warm, and practical.
+4. When Google Search is enabled, incorporate the latest legal standards, court precedents, and official consumer protection regulations.
+
+${contractContext ? `\nACTIVE CONTRACT CONTEXT:\n${contractContext.slice(0, 10000)}` : ''}`;
+
+      const tools: any[] = [];
+      if (enableSearch) {
+        tools.push({ googleSearch: {} });
+      }
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: formattedContents,
+        config: {
+          systemInstruction,
+          tools: tools.length > 0 ? tools : undefined,
+        },
+      });
+
+      const replyText = response.text || "I've reviewed your question. Could you clarify which clause you'd like me to look into?";
+      const candidate = response.candidates?.[0];
+      const groundingChunks = (candidate as any)?.groundingMetadata?.groundingChunks || [];
+      const webSearchQueries = (candidate as any)?.groundingMetadata?.webSearchQueries || [];
+
+      return res.json({
+        success: true,
+        reply: replyText,
+        grounding: { chunks: groundingChunks, queries: webSearchQueries },
+        model: 'gemini-3.8-flash',
+      });
+    } catch (geminiChatErr: any) {
+      console.warn('Gemini chat error, fallback active:', geminiChatErr?.message);
+    }
+  }
+
+  // Friendly Plain English Fallback Assistant
+  let fallbackReply = `Here is a plain-English explanation for you:\n\n`;
+  const lower = latestUserMsg.toLowerCase();
+  if (lower.includes('non-compete') || lower.includes('compete')) {
+    fallbackReply += `• **What is happening:** The other party is trying to stop you from working in your entire industry for up to 3 years after this contract ends.\n• **Why this is risky:** If you sign this as-is, they could threaten legal action if you take another job or start your own business, even if it has nothing to do with their specific clients.\n• **In plain English:** "You can't earn a living in your trade for 36 months."\n• **Safe Alternative:** Replace this with a narrow 6-month non-solicitation clause that only prevents you from taking their existing active clients.`;
+  } else if (lower.includes('indemnif') || lower.includes('liability')) {
+    fallbackReply += `• **What is happening:** The contract has an **uncapped one-way liability trap**.\n• **Why this is risky:** If something goes wrong—or if they are just unhappy with your work—you could be held personally responsible for unlimited monetary damages, while they take zero responsibility.\n• **In plain English:** "You pay for everything, even if it's not completely your fault, with no limit on the bill."\n• **Safe Alternative:** Cap your total liability to the amount of money they actually paid you over the past 12 months, and make it mutual.`;
+  } else if (lower.includes('ip') || lower.includes('invention') || lower.includes('ownership')) {
+    fallbackReply += `• **What is happening:** This is an **overbroad Intellectual Property landgrab**.\n• **Why this is risky:** They claim ownership over everything you create—even in your free time, on your own laptop, for 5 years after you finish working with them.\n• **In plain English:** "Everything you build belongs to them forever."\n• **Safe Alternative:** State clearly that they only own the specific deliverables they paid for, while you keep all your prior tools, libraries, and personal projects.`;
+  } else {
+    fallbackReply += `I've analyzed your contract. The biggest things to watch out for are **unlimited financial liability**, **sneaky auto-renewals with surprise price jumps**, and **overbroad non-compete clauses**.\n\nYou can click any highlighted section on the contract viewer to see the safer wording I generated for you, or ask me: *"Draft an email to negotiate section 2"*!`;
+  }
+
+  return res.json({
+    success: true,
+    reply: fallbackReply,
+    grounding: { chunks: [], queries: [] },
+    model: 'ContractShield Plain-English AI',
+  });
 });
 
 async function startServer() {

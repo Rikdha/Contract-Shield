@@ -2,13 +2,20 @@
 
 @layer base {
   body {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     letter-spacing: -0.011em;
+    background-color: #090d16;
+    color: #f1f5f9;
   }
   
   h1, h2, h3, h4, h5, h6, .font-heading {
     font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
     letter-spacing: -0.02em;
+  }
+
+  .font-serif, .editorial-text {
+    font-family: 'Newsreader', 'Georgia', serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   
   code, pre, .font-mono {
@@ -17,21 +24,21 @@
   }
 }
 
-/* Custom scrollbars for code editors */
+/* Institutional refined scrollbars */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(11, 15, 23, 0.8);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
-  border-radius: 4px;
+  background: rgba(51, 65, 85, 0.6);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 1);
+  background: rgba(71, 85, 105, 0.9);
 }

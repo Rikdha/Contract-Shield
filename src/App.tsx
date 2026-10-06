@@ -45,9 +45,23 @@ import {
 
 export function App() {
   // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('contractshield_auth') === 'true';
+  });
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
-  const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[0]); // Rikdha Sarkar, Admin
+  const [currentUser, setCurrentUser] = useState<User>(() => {
+    const saved = sessionStorage.getItem('contractshield_user');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const matched = INITIAL_USERS.find(u => u.id === parsed.id || u.email === parsed.email);
+        if (matched) return matched;
+      } catch (e) {
+        // ignore
+      }
+    }
+    return INITIAL_USERS[0]; // Admin by default
+  });
 
   // Navigation State
   const [activeNavTab, setActiveNavTab] = useState<AppNavTab>('dashboard');
@@ -144,24 +158,24 @@ export function App() {
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
-    setActiveNavTab('auditor');
+    sessionStorage.setItem('contractshield_auth', 'true');
+    sessionStorage.setItem('contractshield_user', JSON.stringify(user));
+    setActiveNavTab('dashboard');
   };
 
   const handleRegister = (newUser: User) => {
     setUsers(prev => [...prev, newUser]);
     setCurrentUser(newUser);
     setIsAuthenticated(true);
-    setActiveNavTab('auditor');
+    sessionStorage.setItem('contractshield_auth', 'true');
+    sessionStorage.setItem('contractshield_user', JSON.stringify(newUser));
+    setActiveNavTab('dashboard');
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-  };
-
-  // Role switching
-  const handleSwitchRole = (newRole: UserRole) => {
-    setCurrentUser(prev => ({ ...prev, role: newRole }));
-    setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, role: newRole } : u));
+    sessionStorage.removeItem('contractshield_auth');
+    sessionStorage.removeItem('contractshield_user');
   };
 
   const handleSwitchUser = (user: User) => {
@@ -292,7 +306,6 @@ export function App() {
         setActiveTab={setActiveNavTab}
         currentUser={currentUser}
         onOpenUpload={() => setIsUploadOpen(true)}
-        onSwitchRole={handleSwitchRole}
         onLogout={handleLogout}
       />
 

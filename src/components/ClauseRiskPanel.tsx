@@ -481,7 +481,7 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
                         </button>
                       </div>
 
-                      {userRole !== 'Viewer' && !isHighRisk && (
+                      {userRole !== 'Viewer' && userRole !== 'User' && !isHighRisk && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -561,7 +561,7 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
                                         )}
                                       </button>
 
-                                      {userRole !== 'Viewer' && (
+                                      {userRole !== 'Viewer' && userRole !== 'User' && (
                                         <button
                                           type="button"
                                           onClick={(e) => {
@@ -614,7 +614,7 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
                                   {copiedId === `${clause.id}-std` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                   <span>{copiedId === `${clause.id}-std` ? 'Copied' : 'Copy'}</span>
                                 </button>
-                                {userRole !== 'Viewer' && (
+                                {userRole !== 'Viewer' && userRole !== 'User' && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
