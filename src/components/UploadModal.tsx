@@ -118,19 +118,19 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 
     const newDoc: ContractDoc = {
       id: contractId,
-      owner_id: ownerId,
-      filename: filename || `${title.replace(/\s+/g, '_')}.pdf`,
-      title,
-      sha256: sha256 || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      file_size: `${(content.length / 1024).toFixed(1)} KB`,
-      uploaded_at: new Date().toISOString(),
+      title: title.trim(),
+      filename: filename.trim() || `${title.replace(/\s+/g, '_')}.pdf`,
       uploaded_by: uploaderName,
+      owner_id: ownerId,
+      file_size: `${Math.round(content.length / 1024) || 1} KB`,
+      uploaded_at: new Date().toISOString(),
+      status: riskScore >= 70 ? 'IN_REVIEW' : 'AUDITED',
       risk_score: riskScore,
-      status: riskScore > 60 ? 'IN_REVIEW' : 'AUDITED',
-      contract_type: contractType,
-      version: '1.0',
+      sha256: sha256 || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
       clauses,
       risk_flags: riskFlags,
+      version: '1.0',
+      contract_type: contractType,
     };
 
     onUploadSuccess(newDoc);
@@ -138,36 +138,41 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 text-xs space-y-4">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center space-x-2">
-            <Upload className="w-4 h-4 text-cyan-400" />
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/45 backdrop-blur-xs animate-in fade-in"
+      style={{ fontFamily: "'Times New Roman', Times, 'Newsreader', Georgia, serif" }}
+    >
+      <div className="bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg max-w-2xl w-full p-6 sm:p-7 shadow-xl space-y-5 text-xs max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-[#ece7dd]">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded bg-stone-900 text-[#f6f4ef] flex items-center justify-center">
+              <Upload className="w-4 h-4" />
+            </div>
             <div>
-              <h3 className="font-semibold text-white text-sm font-heading">
-                Ingest Commercial Agreement & Audit Clauses
+              <h3 className="text-base font-bold text-stone-900">
+                Ingest New Agreement into Workspace
               </h3>
-              <p className="text-[11px] text-slate-400">
-                Stateless in-memory extraction parses real PDF, DOCX, and text agreements without server storage.
+              <p className="text-xs text-stone-600">
+                Parses PDF, Word DOCX, and text agreements with cryptographic checksum verification.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded text-stone-500 hover:text-stone-900 hover:bg-[#eeebe3] transition"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Error notification if binary or extraction failed */}
         {errorMessage && (
-          <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-800/50 text-rose-300 flex items-start space-x-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <div className="p-3.5 rounded bg-rose-50 border border-rose-300 text-rose-950 flex items-start space-x-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <span className="font-semibold text-xs text-rose-200">Document Extraction Notice:</span>
-              <p className="text-[11px] leading-relaxed text-rose-300">
+              <span className="font-bold text-xs text-rose-900">Document Notice:</span>
+              <p className="text-xs leading-relaxed text-rose-900">
                 {errorMessage}
               </p>
             </div>
@@ -176,7 +181,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* File Picker Drag & Drop Box */}
-          <div className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-5 text-center bg-slate-950/50 transition">
+          <div className="border-2 border-dashed border-[#d8d2c4] hover:border-stone-800 rounded-lg p-6 text-center bg-[#f5f2eb] transition">
             <input
               type="file"
               accept=".pdf,.docx,.doc,.txt,.md"
@@ -185,36 +190,36 @@ export const UploadModal: React.FC<UploadModalProps> = ({
               id="file-upload"
             />
             <label htmlFor="file-upload" className="cursor-pointer block space-y-2">
-              <div className="w-10 h-10 rounded-lg bg-cyan-950/50 border border-cyan-800/40 text-cyan-400 mx-auto flex items-center justify-center">
+              <div className="w-10 h-10 rounded bg-[#fbfaf7] border border-[#d8d2c4] text-stone-800 mx-auto flex items-center justify-center shadow-xs">
                 {isProcessing ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin text-stone-900" />
                 ) : (
-                  <FileType className="w-5 h-5" />
+                  <FileType className="w-5 h-5 text-stone-800" />
                 )}
               </div>
               <div>
-                <p className="font-medium text-slate-200 text-xs">
+                <p className="font-bold text-stone-900 text-xs">
                   {isProcessing ? (
-                    <span className="text-cyan-400">{processingStatus}</span>
+                    <span>{processingStatus}</span>
                   ) : filename ? (
-                    <span className="text-cyan-300">{filename} (Selected)</span>
+                    <span>{filename} (Selected)</span>
                   ) : (
-                    <span>Click to browse or drop an actual contract (PDF, Word DOCX, or TXT)</span>
+                    <span>Click to browse or drop an agreement (PDF, DOCX, or TXT)</span>
                   )}
                 </p>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  PDF text extractor active · Strips binary metadata · Formats clauses automatically
+                <p className="text-[11px] text-stone-500 italic mt-0.5">
+                  Automatic clause segmentation · Strips raw binary headers · Computes SHA-256
                 </p>
               </div>
             </label>
           </div>
 
-          {/* Quick preset contracts for fast compliance testing */}
-          <div className="space-y-1.5">
-            <div className="text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Or load a real-world commercial template with known risk exposure:</span>
+          {/* Quick preset contracts */}
+          <div className="space-y-2">
+            <div className="text-xs text-stone-700 font-bold">
+              <span>Or load an institutional benchmark draft:</span>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => loadSamplePreset(
@@ -222,7 +227,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                   `1. SERVICES AND SCOPE: Provider shall deliver high-performance cloud hosting and managed infrastructure services in accordance with applicable Service Orders.\n\n2. INDEMNIFICATION & UNLIMITED LIABILITY: Customer shall indemnify, defend, and hold harmless Provider, its parent, subsidiaries, officers, and agents against all claims, liabilities, and damages arising from Customer use. Customer liability under this Section shall be UNLIMITED and not subject to any aggregate cap or disclaimer of consequential damages.\n\n3. NON-SOLICITATION AND COMPETITION: Customer agrees that during the term and for thirty-six (36) months thereafter, Customer shall not directly or indirectly engage in, hire, or solicit any personnel or software engineering providers operating in the cloud infrastructure domain globally.\n\n4. INTELLECTUAL PROPERTY RIGHTS: Provider irrevocably assigns to Customer all customized deliverables. However, Customer hereby assigns to Provider all rights, title, and ownership in any feedback, custom configurations, or derivative software authored during the term and for three years thereafter.\n\n5. PAYMENT AND WITHHOLDING: Invoices are due within fifteen (15) days. Provider reserves the sole right to suspend service and withhold data access in the event of any payment dispute.\n\n6. TERM AND AUTOMATIC RENEWAL: This Agreement shall automatically renew for successive terms of twenty-four (24) months unless terminated by certified postal mail at least ninety (90) days prior to the expiration date. Rates shall escalate by twenty-five percent (25%) upon renewal.\n\n7. GOVERNING LAW AND ARBITRATION: Any controversy shall be resolved exclusively through binding individual arbitration administered in the Cayman Islands under local commercial rules.`,
                   'MSA'
                 )}
-                className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 text-[11px] text-slate-300 hover:text-cyan-300 hover:border-slate-700 transition"
+                className="px-3 py-1.5 rounded bg-[#f5f2eb] border border-[#d8d2c4] text-xs text-stone-800 hover:text-stone-900 hover:bg-[#ede8df] transition font-bold"
               >
                 Sample MSA (Uncapped Indemnity & Auto-Renewal)
               </button>
@@ -234,7 +239,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                   `1. POSITION AND DUTIES: Executive agrees to serve as Vice President of Engineering and devote full business time and best efforts to the business of the Corporation.\n\n2. RESTRICTIVE COVENANTS AND WORLDWIDE NON-COMPETE: Executive acknowledges that Corporation business is global. For a period of thirty-six (36) months following termination of employment for any reason, Executive shall not directly or indirectly engage in, advise, invest in, or work for any software, fintech, or technology enterprise globally.\n\n3. ASSIGNMENT OF INVENTIONS: Executive hereby irrevocably assigns to Corporation all right, title, and interest in and to all inventions, patents, code, and proprietary workflows, regardless of whether created during working hours or using personal equipment, and for five (5) years thereafter.\n\n4. ARBITRATION AND JURY WAIVER: Any disputes shall be submitted to confidential individual arbitration. Executive unconditionally waives any right to a jury trial or class action proceeding.`,
                   'EMPLOYMENT'
                 )}
-                className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 text-[11px] text-slate-300 hover:text-cyan-300 hover:border-slate-700 transition"
+                className="px-3 py-1.5 rounded bg-[#f5f2eb] border border-[#d8d2c4] text-xs text-stone-800 hover:text-stone-900 hover:bg-[#ede8df] transition font-bold"
               >
                 Sample Employment (Worldwide Non-Compete)
               </button>
@@ -242,9 +247,9 @@ export const UploadModal: React.FC<UploadModalProps> = ({
           </div>
 
           {/* Form Fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-slate-400">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-stone-800">
                 Agreement Title:
               </label>
               <input
@@ -252,19 +257,19 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                 required
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder="e.g. Acme SaaS Master Subscription Agreement"
-                className="w-full bg-slate-950 text-xs text-white px-3 py-2 rounded-lg border border-slate-800 focus:outline-none focus:border-cyan-500"
+                placeholder="e.g. Acme Enterprise Services Agreement"
+                className="w-full bg-[#f5f2eb] text-xs text-stone-900 px-3 py-2 rounded border border-[#d8d2c4] focus:outline-hidden"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-medium text-slate-400">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-stone-800">
                 Contract Category:
               </label>
               <select
                 value={contractType}
                 onChange={e => setContractType(e.target.value as any)}
-                className="w-full bg-slate-950 text-xs text-white px-3 py-2 rounded-lg border border-slate-800 focus:outline-none focus:border-cyan-500"
+                className="w-full bg-[#f5f2eb] text-xs text-stone-900 px-3 py-2 rounded border border-[#d8d2c4] focus:outline-hidden font-bold"
               >
                 <option value="MSA">MSA (Master Services Agreement)</option>
                 <option value="NDA">NDA (Non-Disclosure Agreement)</option>
@@ -276,13 +281,13 @@ export const UploadModal: React.FC<UploadModalProps> = ({
             </div>
           </div>
 
-          {/* Contract Textarea Review */}
-          <div className="space-y-1">
-            <div className="flex justify-between items-center text-[11px]">
-              <label className="font-medium text-slate-400">
-                Contract Content (Clean Human-Readable Clauses):
+          {/* Contract Content Textarea */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-xs">
+              <label className="font-bold text-stone-800">
+                Contract Content (Clauses):
               </label>
-              <span className="text-slate-500 font-mono text-[10px]">
+              <span className="text-stone-500 font-mono text-[11px]">
                 {content.length} characters · ~{Math.max(1, content.split(/\n\s*\n/).filter(p => p.length > 25).length)} clauses
               </span>
             </div>
@@ -291,18 +296,18 @@ export const UploadModal: React.FC<UploadModalProps> = ({
               rows={8}
               value={content}
               onChange={e => handlePasteChange(e.target.value)}
-              placeholder="Paste contract clauses here, or select a PDF / Word document above to auto-extract..."
-              className="w-full bg-slate-950 font-serif text-[11px] leading-relaxed text-slate-200 px-3 py-2 rounded-lg border border-slate-800 focus:outline-none focus:border-cyan-500"
+              placeholder="Paste contract clauses here, or select a PDF / Word document above..."
+              className="w-full bg-[#f5f2eb] font-serif text-xs leading-relaxed text-stone-900 px-3.5 py-2.5 rounded border border-[#d8d2c4] focus:outline-hidden"
             />
           </div>
 
           {/* Cryptographic SHA-256 Preview */}
           {sha256 && (
-            <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between text-[11px]">
+            <div className="p-3 rounded bg-[#f5f2eb] border border-[#d8d2c4] flex items-center justify-between text-xs">
               <div className="flex items-center space-x-2 truncate">
-                <Lock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                <span className="text-slate-400 font-mono">SHA-256:</span>
-                <span className="font-mono text-cyan-300 truncate max-w-sm" title={sha256}>
+                <Lock className="w-3.5 h-3.5 text-stone-700 shrink-0" />
+                <span className="text-stone-600 font-bold">SHA-256:</span>
+                <span className="font-mono text-stone-900 truncate max-w-sm" title={sha256}>
                   {sha256}
                 </span>
               </div>
@@ -313,26 +318,26 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                   setCopiedHash(true);
                   setTimeout(() => setCopiedHash(false), 2000);
                 }}
-                className="text-slate-400 hover:text-white shrink-0 ml-2"
+                className="text-stone-600 hover:text-stone-900 shrink-0 ml-2 font-bold"
               >
-                {copiedHash ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                {copiedHash ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
           )}
 
           {/* Action Footer */}
-          <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+          <div className="flex items-center justify-end space-x-3 pt-3 border-t border-[#ece7dd]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-xs font-medium"
+              className="px-4 py-2 rounded bg-[#fbfaf7] border border-[#dfd9cd] text-stone-700 hover:bg-[#ede8df] transition text-xs font-bold"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isProcessing || !content.trim() || !title.trim()}
-              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs transition disabled:opacity-50 flex items-center space-x-1.5 shadow-md shadow-cyan-500/20"
+              className="px-5 py-2 rounded bg-stone-900 hover:bg-stone-800 text-[#f6f4ef] font-bold text-xs transition disabled:opacity-50 flex items-center space-x-2 shadow-xs"
             >
               {isProcessing ? (
                 <>

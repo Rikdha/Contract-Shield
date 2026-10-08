@@ -24,6 +24,7 @@ import {
 import { AuditReport, Vulnerability, SampleContract } from '../types/contract';
 import { performClientSecurityAudit, getAuditHistory, saveAuditToHistory } from '../services/auditService';
 import { SAMPLE_CONTRACTS } from '../data/sampleContracts';
+import { FaultIsolationBoundary } from './FaultIsolationBoundary';
 
 export const SmartContractAuditorView: React.FC = () => {
   const smartContractSamples = SAMPLE_CONTRACTS.filter(s => s.type === 'smart_contract');
@@ -103,25 +104,30 @@ export const SmartContractAuditorView: React.FC = () => {
 
   const exportReportMarkdown = () => {
     if (!report) return;
-    let md = `# Smart Contract Security Audit Report: ${report.contractTitle}\n\n`;
-    md += `**Timestamp:** ${report.timestamp}\n`;
-    md += `**Security Score:** ${report.overallScore}/100 (Grade: ${report.letterGrade})\n`;
-    md += `**Verification Hash:** \`${report.verificationHash}\`\n\n`;
-    md += `## Executive Summary\n${report.summary}\n\n`;
-    md += `## Vulnerability Diagnostics (${report.vulnerabilities.length} Found)\n\n`;
 
-    report.vulnerabilities.forEach((v, idx) => {
-      md += `### ${idx + 1}. [${v.severity.toUpperCase()}] ${v.title} (${v.swcId || 'SWC'})\n`;
-      md += `**Category:** ${v.category}\n`;
+    let md = `# Contract Shield Security Audit Report\n\n`;
+    md += `**Contract:** ${report.contractTitle}\n`;
+    md += `**Security Score:** ${report.overallScore}/100 (Grade: ${report.letterGrade})\n`;
+    md += `**Timestamp:** ${new Date(report.timestamp).toUTCString()}\n\n`;
+    md += `## Executive Vulnerability Summary\n`;
+    md += `- Critical Severity: ${report.riskCounts.critical}\n`;
+    md += `- High Severity: ${report.riskCounts.high}\n`;
+    md += `- Medium Severity: ${report.riskCounts.medium}\n`;
+    md += `- Low Severity: ${report.riskCounts.low}\n\n`;
+
+    md += `## Detailed Findings & Defensive Remediations\n\n`;
+    report.vulnerabilities.forEach((v, index) => {
+      md += `### ${index + 1}. ${v.title} [${v.severity.toUpperCase()}]\n`;
+      md += `**SWC-ID:** ${v.swcId || 'N/A'}\n\n`;
+      md += `**Description:** ${v.description}\n\n`;
       md += `**Impact:** ${v.impact}\n\n`;
-      md += `**Technical Description:**\n${v.description}\n\n`;
       if (v.vulnerableSnippet) {
-        md += `\`\`\`solidity\n// VULNERABLE SNIPPET\n${v.vulnerableSnippet}\n\`\`\`\n\n`;
+        md += `**Vulnerable Code:**\n\`\`\`solidity\n${v.vulnerableSnippet}\n\`\`\`\n\n`;
       }
       if (v.patchedSnippet) {
-        md += `\`\`\`solidity\n// DEFENSIVE PATCH\n${v.patchedSnippet}\n\`\`\`\n\n`;
+        md += `**Defensive Patch:**\n\`\`\`solidity\n${v.patchedSnippet}\n\`\`\`\n\n`;
       }
-      md += `**Remediation Recommendation:**\n${v.remediation}\n\n---\n\n`;
+      md += `**Remediation Recommendation:** ${v.remediation}\n\n---\n\n`;
     });
 
     const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
@@ -137,363 +143,362 @@ export const SmartContractAuditorView: React.FC = () => {
   const lines = code.split('\n');
 
   return (
-    <div className="space-y-4">
-      {/* Top Header & Presets Bar */}
-      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <Code2 className="w-4 h-4" />
+    <div className="space-y-6" style={{ fontFamily: "'Times New Roman', Times, 'Newsreader', Georgia, serif" }}>
+      {/* SECTION 1: CONTRACT PRESETS & WORKSPACE CONTROLS */}
+      <FaultIsolationBoundary sectionTitle="Smart Contract Controls" sectionCode="SEC-SC1">
+        <section className="p-6 rounded-lg bg-[#fbfaf7] border border-[#dfd9cd] shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded bg-stone-900 text-[#f6f4ef] flex items-center justify-center font-bold">
+                <Code2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-stone-900">
+                  Smart Contract Security Studio
+                </h3>
+                <p className="text-xs text-stone-600">
+                  Static analysis & simulation engine specializing in SWC-107 Reentrancy, SWC-101 Arithmetic, and DeFi Invariants.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-base font-semibold text-white font-heading">
-                Smart Contract Security Auditor
-              </h2>
-              <p className="text-xs text-slate-400">
-                Static analysis engine specializing in SWC-107 Reentrancy, SWC-101 Integer Overflows, and DeFi invariants.
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center space-x-2">
-            <label className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 cursor-pointer transition">
-              <Upload className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Upload .sol</span>
-              <input 
-                type="file" 
-                accept=".sol,.vy,.rs,.txt" 
-                onChange={handleFileUpload} 
-                className="hidden" 
-              />
-            </label>
+            <div className="flex items-center space-x-3">
+              <label className="flex items-center space-x-1.5 px-3 py-2 rounded bg-[#fbfaf7] hover:bg-[#ede8df] border border-[#dfd9cd] text-xs font-bold text-stone-800 cursor-pointer transition">
+                <Upload className="w-3.5 h-3.5 text-stone-700" />
+                <span>Upload .sol</span>
+                <input 
+                  type="file" 
+                  accept=".sol,.vy,.rs,.txt" 
+                  onChange={handleFileUpload} 
+                  className="hidden" 
+                />
+              </label>
 
-            {report && (
+              {report && (
+                <button
+                  onClick={exportReportMarkdown}
+                  className="flex items-center space-x-1.5 px-3 py-2 rounded bg-[#fbfaf7] hover:bg-[#ede8df] border border-[#dfd9cd] text-xs font-bold text-stone-800 transition"
+                >
+                  <Download className="w-3.5 h-3.5 text-stone-700" />
+                  <span>Export Report</span>
+                </button>
+              )}
+
               <button
-                onClick={exportReportMarkdown}
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 transition"
+                onClick={() => runAudit(code, contractTitle)}
+                disabled={isAuditing || !code.trim()}
+                className="flex items-center space-x-2 px-4 py-2 rounded bg-stone-900 hover:bg-stone-800 text-[#f6f4ef] font-bold text-xs shadow-xs disabled:opacity-50 transition"
               >
-                <Download className="w-3.5 h-3.5 text-slate-400" />
-                <span>Export Report</span>
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>{isAuditing ? 'Auditing Invariants...' : 'Run Security Audit'}</span>
               </button>
-            )}
-
-            <button
-              onClick={() => runAudit(code, contractTitle)}
-              disabled={isAuditing || !code.trim()}
-              className="flex items-center space-x-1.5 px-4 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs shadow-md shadow-cyan-500/20 disabled:opacity-50 transition"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>{isAuditing ? 'Auditing...' : 'Run Security Audit'}</span>
-            </button>
+            </div>
           </div>
-        </div>
 
-        {/* Quick Vulnerability Sample Presets */}
-        <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-500 text-[11px] font-medium mr-1">
-            Vulnerability Benchmarks:
-          </span>
-          {smartContractSamples.map((sample) => (
-            <button
-              key={sample.id}
-              onClick={() => handleSelectSample(sample)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition flex items-center space-x-1.5 ${
-                contractTitle === sample.name
-                  ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-500/40'
-                  : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800/80'
-              }`}
-            >
-              <span>{sample.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+          {/* Quick Vulnerability Benchmark Archetypes */}
+          <div className="pt-3 border-t border-[#ece7dd] flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-stone-600 font-bold mr-1">
+              Vulnerability Archetypes:
+            </span>
+            {smartContractSamples.map((sample) => (
+              <button
+                key={sample.id}
+                onClick={() => handleSelectSample(sample)}
+                className={`px-3 py-1 rounded text-xs font-bold transition flex items-center space-x-1.5 ${
+                  contractTitle === sample.name
+                    ? 'bg-stone-900 text-[#f6f4ef]'
+                    : 'bg-[#f5f2eb] text-stone-700 hover:text-stone-900 hover:bg-[#ede8df] border border-[#dfd9cd]'
+                }`}
+              >
+                <span>{sample.name}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </FaultIsolationBoundary>
 
-      {/* Main Split-Screen Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-250px)] min-h-[640px]">
+      {/* SECTION 2 & 3: SPLIT-SCREEN WORKSPACE (EDITOR & FINDINGS) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-250px)] min-h-[640px]">
         {/* Left Column: Solidity Code Editor */}
-        <div className="lg:col-span-6 flex flex-col h-full bg-slate-900/50 border border-slate-800/80 rounded-xl overflow-hidden">
-          {/* Editor Header */}
-          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-950/80 border-b border-slate-800/80 text-xs">
-            <div className="flex items-center space-x-2 truncate">
-              <FileCode className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <input
-                type="text"
-                value={contractTitle}
-                onChange={e => setContractTitle(e.target.value)}
-                className="bg-transparent font-medium text-slate-200 focus:outline-none focus:text-white truncate max-w-[240px]"
-                title="Contract Name"
+        <div className="lg:col-span-6 flex flex-col h-full bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg overflow-hidden shadow-xs">
+          <FaultIsolationBoundary sectionTitle="Code Editor" sectionCode="SEC-SC2">
+            {/* Editor Header */}
+            <div className="flex items-center justify-between px-4 py-2.5 bg-[#f5f2eb] border-b border-[#dfd9cd] text-xs">
+              <div className="flex items-center space-x-2 truncate">
+                <FileCode className="w-4 h-4 text-stone-800 shrink-0" />
+                <input
+                  type="text"
+                  value={contractTitle}
+                  onChange={e => setContractTitle(e.target.value)}
+                  className="bg-transparent font-bold text-stone-900 focus:outline-hidden truncate max-w-[240px]"
+                  title="Contract Name"
+                />
+                <span className="text-stone-500 text-xs">
+                  · Solidity ({lines.length} lines)
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleCopyCode}
+                  className="p-1 rounded text-stone-600 hover:text-stone-900 transition hover:bg-[#ede8df]"
+                  title="Copy code"
+                >
+                  {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  onClick={() => setCode('')}
+                  className="p-1 rounded text-stone-600 hover:text-rose-700 transition hover:bg-[#ede8df]"
+                  title="Clear code"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Interactive Code Viewport with Line Numbers */}
+            <div className="flex-1 flex overflow-hidden bg-[#fcfbfa] font-mono text-xs">
+              {/* Line Numbers Column */}
+              <div className="py-3 px-2 text-right select-none text-stone-400 bg-[#f5f2eb] border-r border-[#dfd9cd] w-12 shrink-0 overflow-hidden font-mono text-[11px] leading-relaxed">
+                {lines.map((_, i) => (
+                  <div key={i}>{i + 1}</div>
+                ))}
+              </div>
+
+              {/* Editable Code Body */}
+              <textarea
+                value={code}
+                onChange={e => setCode(e.target.value)}
+                placeholder="// Paste Solidity smart contract code here..."
+                className="flex-1 p-3.5 bg-[#fcfbfa] text-stone-900 resize-none focus:outline-hidden font-mono text-xs leading-relaxed selection:bg-amber-200 selection:text-stone-900 overflow-auto"
+                spellCheck={false}
               />
-              <span className="text-slate-500 text-[11px]">
-                · Solidity ({lines.length} lines)
-              </span>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={handleCopyCode}
-                className="p-1 rounded text-slate-400 hover:text-white transition"
-                title="Copy code"
-              >
-                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                onClick={() => setCode('')}
-                className="p-1 rounded text-slate-400 hover:text-rose-400 transition"
-                title="Clear code"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Interactive Code Viewport with Line Numbers */}
-          <div className="flex-1 flex overflow-hidden bg-slate-950 font-mono text-xs">
-            {/* Line Numbers Column */}
-            <div className="py-3 px-2 text-right select-none text-slate-600 bg-slate-950/80 border-r border-slate-800/60 w-12 shrink-0 overflow-hidden font-mono text-[11px] leading-relaxed">
-              {lines.map((_, i) => (
-                <div key={i}>{i + 1}</div>
-              ))}
-            </div>
-
-            {/* Editable Code Body */}
-            <textarea
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              placeholder="// Paste Solidity smart contract code here..."
-              className="flex-1 p-3 bg-transparent text-slate-200 resize-none focus:outline-none font-mono text-[11px] leading-relaxed selection:bg-cyan-500/20 selection:text-cyan-200 overflow-auto"
-              spellCheck={false}
-            />
-          </div>
-
-          {/* Live Scanning Status Footer */}
-          {isAuditing && (
-            <div className="px-4 py-2 bg-slate-950 border-t border-slate-800 text-[11px] text-cyan-400 flex items-center space-x-2">
-              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              <span>{auditPhase}</span>
-            </div>
-          )}
+            {/* Live Scanning Status Footer */}
+            {isAuditing && (
+              <div className="px-4 py-2 bg-[#f5f2eb] border-t border-[#dfd9cd] text-xs text-stone-800 flex items-center space-x-2">
+                <div className="w-2 h-2 rounded-full bg-stone-900 animate-ping" />
+                <span className="font-bold">{auditPhase}</span>
+              </div>
+            )}
+          </FaultIsolationBoundary>
         </div>
 
         {/* Right Column: Vulnerability Diagnostics & Exploit Analysis */}
-        <div className="lg:col-span-6 flex flex-col h-full bg-slate-900/50 border border-slate-800/80 rounded-xl overflow-hidden">
-          {report ? (
-            <div className="flex flex-col h-full">
-              {/* Score & Risk Summary Header */}
-              <div className="p-4 bg-slate-950/80 border-b border-slate-800/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className={`text-xl font-bold font-mono ${
-                        report.overallScore >= 80 ? 'text-emerald-400' :
-                        report.overallScore >= 50 ? 'text-amber-400' : 'text-rose-400'
-                      }`}>
-                        {report.overallScore} / 100
+        <div className="lg:col-span-6 flex flex-col h-full bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg overflow-hidden shadow-xs">
+          <FaultIsolationBoundary sectionTitle="Security Diagnostics" sectionCode="SEC-SC3">
+            {report ? (
+              <div className="flex flex-col h-full">
+                {/* Score & Risk Summary Header */}
+                <div className="p-4 sm:p-5 bg-[#f5f2eb] border-b border-[#dfd9cd] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xl font-bold text-stone-900">
+                          {report.overallScore} / 100
+                        </span>
+                        <span className="text-stone-400 text-xs">·</span>
+                        <span className={`font-bold text-xs px-2.5 py-0.5 rounded border ${
+                          report.letterGrade === 'A+' || report.letterGrade === 'A' ? 'bg-emerald-100 text-emerald-900 border-emerald-300' :
+                          report.letterGrade === 'B' || report.letterGrade === 'C' ? 'bg-amber-100 text-amber-900 border-amber-300' :
+                          'bg-rose-100 text-rose-900 border-rose-300'
+                        }`}>
+                          Grade {report.letterGrade}
+                        </span>
+                        <span className="text-stone-600 text-xs italic">
+                          ({report.vulnerabilities.length === 0 ? 'Verified Invariants' : `${report.vulnerabilities.length} Flaws Detected`})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Clean unboxed counts */}
+                    <div className="flex items-center space-x-2 text-xs font-bold">
+                      <span className="text-rose-900 flex items-center space-x-1">
+                        <span className="w-2 h-2 rounded-full bg-rose-600" />
+                        <span>{report.riskCounts.critical} Critical</span>
                       </span>
-                      <span className="text-slate-500 text-xs">·</span>
-                      <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${
-                        report.letterGrade === 'A+' || report.letterGrade === 'A' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/50' :
-                        report.letterGrade === 'B' || report.letterGrade === 'C' ? 'bg-amber-950 text-amber-300 border border-amber-800/50' :
-                        'bg-rose-950 text-rose-300 border border-rose-800/50'
-                      }`}>
-                        Grade {report.letterGrade}
+                      <span className="text-amber-900 flex items-center space-x-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-600" />
+                        <span>{report.riskCounts.high} High</span>
                       </span>
-                      <span className="text-slate-400 text-xs">
-                        ({report.vulnerabilities.length === 0 ? 'Audited Secure' : `${report.vulnerabilities.length} Flaws Detected`})
+                      <span className="text-stone-700 flex items-center space-x-1">
+                        <span className="w-2 h-2 rounded-full bg-stone-500" />
+                        <span>{report.riskCounts.medium} Med</span>
                       </span>
                     </div>
                   </div>
 
-                  {/* Clean unboxed vulnerability counts */}
-                  <div className="flex items-center space-x-2 font-mono text-[11px]">
-                    <span className="text-rose-400 flex items-center space-x-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                      <span>{report.riskCounts.critical} Critical</span>
-                    </span>
-                    <span className="text-amber-400 flex items-center space-x-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                      <span>{report.riskCounts.high} High</span>
-                    </span>
-                    <span className="text-blue-400 flex items-center space-x-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      <span>{report.riskCounts.medium} Med</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Sub-tab Navigation */}
-                <div className="flex items-center space-x-1 pt-1 border-t border-slate-800/60 text-xs">
-                  <button
-                    onClick={() => setActiveSubTab('vulnerabilities')}
-                    className={`px-3 py-1 rounded-md transition font-medium ${
-                      activeSubTab === 'vulnerabilities'
-                        ? 'bg-slate-800 text-white'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Vulnerabilities ({report.vulnerabilities.length})
-                  </button>
-
-                  {report.exploitSimulation && (
+                  {/* Sub-tab Navigation */}
+                  <div className="flex items-center space-x-1.5 pt-2 border-t border-[#dfd9cd] text-xs font-bold">
                     <button
-                      onClick={() => setActiveSubTab('exploit')}
-                      className={`px-3 py-1 rounded-md transition font-medium flex items-center space-x-1 ${
-                        activeSubTab === 'exploit'
-                          ? 'bg-rose-950/60 text-rose-300 border border-rose-800/40'
-                          : 'text-rose-400 hover:text-rose-300'
+                      onClick={() => setActiveSubTab('vulnerabilities')}
+                      className={`px-3 py-1.5 rounded transition ${
+                        activeSubTab === 'vulnerabilities'
+                          ? 'bg-stone-900 text-[#f6f4ef]'
+                          : 'text-stone-700 hover:text-stone-900 hover:bg-[#e6e2d8]'
                       }`}
                     >
-                      <Flame className="w-3 h-3" />
-                      <span>Exploit Trace</span>
+                      Vulnerabilities ({report.vulnerabilities.length})
                     </button>
-                  )}
 
-                  <button
-                    onClick={() => setActiveSubTab('optimizations')}
-                    className={`px-3 py-1 rounded-md transition font-medium ${
-                      activeSubTab === 'optimizations'
-                        ? 'bg-slate-800 text-white'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Gas Optimizations ({report.optimizations.length})
-                  </button>
-                </div>
-              </div>
-
-              {/* Tab Contents */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {activeSubTab === 'vulnerabilities' && (
-                  report.vulnerabilities.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400 space-y-2">
-                      <ShieldCheck className="w-10 h-10 text-emerald-400 mx-auto" />
-                      <h4 className="text-sm font-semibold text-white">No Security Flaws Detected</h4>
-                      <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                        This contract follows safe state modification patterns, arithmetic guards, and access control invariants.
-                      </p>
-                    </div>
-                  ) : (
-                    report.vulnerabilities.map((vuln) => (
-                      <div
-                        key={vuln.id}
-                        className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2.5 text-xs"
+                    {report.exploitSimulation && (
+                      <button
+                        onClick={() => setActiveSubTab('exploit')}
+                        className={`px-3 py-1.5 rounded transition flex items-center space-x-1 ${
+                          activeSubTab === 'exploit'
+                            ? 'bg-rose-800 text-white'
+                            : 'text-rose-800 hover:bg-rose-100'
+                        }`}
                       >
-                        {/* Title & SWC Badge */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className={`w-2 h-2 rounded-full ${
-                              vuln.severity === 'critical' ? 'bg-rose-500' :
-                              vuln.severity === 'high' ? 'bg-amber-500' : 'bg-blue-500'
-                            }`} />
-                            <h4 className="font-semibold text-white text-xs">
-                              {vuln.title}
-                            </h4>
-                          </div>
+                        <Flame className="w-3 h-3" />
+                        <span>Exploit Trace</span>
+                      </button>
+                    )}
 
-                          <span className="font-mono text-[10px] text-slate-500">
-                            {vuln.swcId || 'SWC INVARIANT'}
-                          </span>
-                        </div>
+                    <button
+                      onClick={() => setActiveSubTab('optimizations')}
+                      className={`px-3 py-1.5 rounded transition ${
+                        activeSubTab === 'optimizations'
+                          ? 'bg-stone-900 text-[#f6f4ef]'
+                          : 'text-stone-700 hover:text-stone-900 hover:bg-[#e6e2d8]'
+                      }`}
+                    >
+                      Gas Optimizations ({report.optimizations.length})
+                    </button>
+                  </div>
+                </div>
 
-                        {/* Description & Impact */}
-                        <p className="text-slate-300 text-[11px] leading-relaxed">
-                          {vuln.description}
+                {/* Tab Contents */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                  {activeSubTab === 'vulnerabilities' && (
+                    report.vulnerabilities.length === 0 ? (
+                      <div className="p-8 text-center text-stone-600 space-y-2 bg-[#f6f4ef] rounded border border-[#dfd9cd]">
+                        <ShieldCheck className="w-10 h-10 text-emerald-700 mx-auto" />
+                        <h4 className="text-sm font-bold text-stone-900">No Security Flaws Detected</h4>
+                        <p className="text-xs text-stone-600 max-w-sm mx-auto italic">
+                          This contract follows Checks-Effects-Interactions, arithmetic overflow guards, and strict access control invariants.
                         </p>
-
-                        <div className="p-2.5 rounded-lg bg-rose-950/20 border border-rose-900/30 text-[11px] text-rose-300">
-                          <span className="font-semibold">Impact:</span> {vuln.impact}
-                        </div>
-
-                        {/* Vulnerable vs Patched Snippet Comparison */}
-                        {vuln.vulnerableSnippet && vuln.patchedSnippet && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1 font-mono text-[10px]">
-                            {/* Vulnerable Snippet */}
-                            <div className="p-2.5 rounded bg-rose-950/30 border border-rose-800/40 text-rose-200">
-                              <div className="text-[9px] text-rose-400 font-semibold mb-1 uppercase tracking-wider">
-                                Flawed Code
-                              </div>
-                              <pre className="overflow-x-auto whitespace-pre-wrap">{vuln.vulnerableSnippet}</pre>
+                      </div>
+                    ) : (
+                      report.vulnerabilities.map((vuln) => (
+                        <div
+                          key={vuln.id}
+                          className="p-4 rounded bg-[#fcfbfa] border border-[#dfd9cd] space-y-2.5 text-xs shadow-xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <span className={`w-2.5 h-2.5 rounded-full ${
+                                vuln.severity === 'critical' ? 'bg-rose-600' :
+                                vuln.severity === 'high' ? 'bg-amber-600' : 'bg-stone-600'
+                              }`} />
+                              <h4 className="font-bold text-stone-900 text-sm">
+                                {vuln.title}
+                              </h4>
                             </div>
 
-                            {/* Patched Snippet */}
-                            <div className="p-2.5 rounded bg-emerald-950/30 border border-emerald-800/40 text-emerald-200">
-                              <div className="text-[9px] text-emerald-400 font-semibold mb-1 uppercase tracking-wider">
-                                Defensive Patch
-                              </div>
-                              <pre className="overflow-x-auto whitespace-pre-wrap">{vuln.patchedSnippet}</pre>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Remediation Note */}
-                        <div className="text-[11px] text-emerald-400 pt-1">
-                          <span className="font-semibold text-slate-300">Remediation:</span> {vuln.remediation}
-                        </div>
-                      </div>
-                    ))
-                  )
-                )}
-
-                {/* Exploit Trace Tab */}
-                {activeSubTab === 'exploit' && report.exploitSimulation && (
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-800/40 text-xs">
-                      <div className="font-semibold text-rose-200 mb-0.5">
-                        {report.exploitSimulation.title}
-                      </div>
-                      <div className="text-[11px] text-rose-300/80">
-                        Consequence: {report.exploitSimulation.consequence}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      {report.exploitSimulation.steps.map((st) => (
-                        <div key={st.step} className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs space-y-1">
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-mono text-cyan-400 font-semibold">
-                              Step {st.step} · {st.actor}
+                            <span className="font-mono text-[11px] text-stone-700 px-2 py-0.5 rounded bg-[#f5f2eb] border border-[#dfd9cd]">
+                              {vuln.swcId || 'SWC INVARIANT'}
                             </span>
                           </div>
-                          <p className="text-slate-300 text-[11px] leading-relaxed">
-                            {st.action}
+
+                          <p className="text-stone-700 text-xs leading-relaxed font-serif">
+                            {vuln.description}
                           </p>
-                          <div className="p-1.5 rounded bg-slate-900 border border-slate-800/60 font-mono text-[10px] text-slate-400 overflow-x-auto">
-                            {st.codeOrDetail}
+
+                          <div className="p-3 rounded bg-rose-50/70 border border-rose-300 text-xs text-rose-950">
+                            <span className="font-bold text-rose-900">Impact:</span> {vuln.impact}
+                          </div>
+
+                          {/* Vulnerable vs Patched Snippet Comparison */}
+                          {vuln.vulnerableSnippet && vuln.patchedSnippet && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 font-mono text-[11px]">
+                              <div className="p-3 rounded bg-rose-50/60 border border-rose-300 text-stone-900">
+                                <div className="text-[10px] text-rose-900 font-bold mb-1 uppercase tracking-wider font-serif">
+                                  Flawed Code
+                                </div>
+                                <pre className="overflow-x-auto whitespace-pre-wrap">{vuln.vulnerableSnippet}</pre>
+                              </div>
+
+                              <div className="p-3 rounded bg-emerald-50/60 border border-emerald-300 text-stone-900">
+                                <div className="text-[10px] text-emerald-900 font-bold mb-1 uppercase tracking-wider font-serif">
+                                  Defensive Patch
+                                </div>
+                                <pre className="overflow-x-auto whitespace-pre-wrap">{vuln.patchedSnippet}</pre>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="text-xs text-emerald-900 pt-1">
+                            <span className="font-bold text-stone-900">Remediation:</span> {vuln.remediation}
+                          </div>
+                        </div>
+                      ))
+                    )
+                  )}
+
+                  {/* Exploit Trace Tab */}
+                  {activeSubTab === 'exploit' && report.exploitSimulation && (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded bg-rose-50/80 border border-rose-300 text-xs">
+                        <div className="font-bold text-rose-950 mb-1 text-sm">
+                          {report.exploitSimulation.title}
+                        </div>
+                        <div className="text-xs text-rose-900">
+                          Consequence: {report.exploitSimulation.consequence}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {report.exploitSimulation.steps.map((st) => (
+                          <div key={st.step} className="p-4 rounded bg-[#fcfbfa] border border-[#dfd9cd] text-xs space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-stone-900">
+                                Step {st.step} · {st.actor}
+                              </span>
+                            </div>
+                            <p className="text-stone-700 text-xs leading-relaxed font-serif">
+                              {st.action}
+                            </p>
+                            <div className="p-2 rounded bg-[#f5f2eb] border border-[#e2ddd1] font-mono text-[11px] text-stone-900 overflow-x-auto">
+                              {st.codeOrDetail}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Gas Optimizations Tab */}
+                  {activeSubTab === 'optimizations' && (
+                    <div className="space-y-3">
+                      {report.optimizations.map((opt, i) => (
+                        <div key={i} className="p-4 rounded bg-[#fcfbfa] border border-[#dfd9cd] text-xs space-y-1.5">
+                          <div className="font-bold text-stone-900 text-xs">
+                            {opt.title}
+                          </div>
+                          <p className="text-stone-700 text-xs leading-relaxed font-serif">
+                            {opt.description}
+                          </p>
+                          <div className="text-xs text-stone-900 pt-1">
+                            <span className="font-bold text-stone-900">Optimization:</span> {opt.suggestion}
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {/* Gas Optimizations Tab */}
-                {activeSubTab === 'optimizations' && (
-                  <div className="space-y-2.5">
-                    {report.optimizations.map((opt, i) => (
-                      <div key={i} className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs space-y-1">
-                        <div className="font-semibold text-white text-xs">
-                          {opt.title}
-                        </div>
-                        <p className="text-slate-400 text-[11px] leading-relaxed">
-                          {opt.description}
-                        </p>
-                        <div className="text-[11px] text-cyan-300 pt-0.5">
-                          <span className="font-semibold text-slate-400">Recommendation:</span> {opt.suggestion}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center p-8 text-center text-slate-500 text-xs">
-              <div>
-                <Code2 className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                <p>Click "Run Security Audit" to evaluate smart contract vulnerabilities.</p>
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-8 text-center text-stone-500 text-xs">
+                <div>
+                  <Code2 className="w-8 h-8 text-stone-400 mx-auto mb-2" />
+                  <p className="font-bold text-stone-800">No audit in memory</p>
+                  <p className="text-stone-500 italic mt-0.5">Click "Run Security Audit" to evaluate smart contract invariants.</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </FaultIsolationBoundary>
         </div>
       </div>
     </div>

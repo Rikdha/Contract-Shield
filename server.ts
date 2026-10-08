@@ -283,8 +283,9 @@ Perform an exhaustive security and risk audit. Explain every issue simply. Retur
 
 // POST: /api/chat
 app.post('/api/chat', async (req, res) => {
-  const { messages, enableSearch, contractContext } = req.body || {};
-  const latestUserMsg = messages?.[messages.length - 1]?.text || '';
+  const { messages, enableSearch, contractContext, query, context } = req.body || {};
+  const activeContext = contractContext || context || '';
+  const latestUserMsg = query || (messages && messages.length > 0 ? messages[messages.length - 1]?.text : '') || '';
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (apiKey) {
@@ -294,10 +295,12 @@ app.post('/api/chat', async (req, res) => {
         httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
       });
 
-      const formattedContents = (messages || []).map((m: any) => ({
-        role: m.role === 'model' ? 'model' : 'user',
-        parts: [{ text: m.text }],
-      }));
+      const formattedContents = messages && messages.length > 0 
+        ? messages.map((m: any) => ({
+            role: m.role === 'model' ? 'model' : 'user',
+            parts: [{ text: m.text }],
+          }))
+        : [{ role: 'user', parts: [{ text: latestUserMsg }] }];
 
       const systemInstruction = `You are ContractShield AI, an empathetic, expert contract advisor and legal companion.
 Your primary mission is to protect regular people, freelancers, students, and startup founders from predatory legal and smart contract clauses.
@@ -307,7 +310,7 @@ CRITICAL COMMUNICATION GUIDELINES:
 3. Be reassuring, friendly, warm, and practical.
 4. When Google Search is enabled, incorporate the latest legal standards, court precedents, and official consumer protection regulations.
 
-${contractContext ? `\nACTIVE CONTRACT CONTEXT:\n${contractContext.slice(0, 10000)}` : ''}`;
+${activeContext ? `\nACTIVE CONTRACT CONTEXT:\n${activeContext.slice(0, 10000)}` : ''}`;
 
       const tools: any[] = [];
       if (enableSearch) {
@@ -328,10 +331,16 @@ ${contractContext ? `\nACTIVE CONTRACT CONTEXT:\n${contractContext.slice(0, 1000
       const groundingChunks = (candidate as any)?.groundingMetadata?.groundingChunks || [];
       const webSearchQueries = (candidate as any)?.groundingMetadata?.webSearchQueries || [];
 
+      const groundingSources = groundingChunks.map((c: any) => ({
+        title: c.web?.title || 'Legal Reference',
+        uri: c.web?.uri,
+      })).filter((s: any) => Boolean(s.uri));
+
       return res.json({
         success: true,
         reply: replyText,
         grounding: { chunks: groundingChunks, queries: webSearchQueries },
+        groundingSources,
         model: 'gemini-3.8-flash',
       });
     } catch (geminiChatErr: any) {

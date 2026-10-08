@@ -1,44 +1,73 @@
 @import "tailwindcss";
 
 @layer base {
+  *, ::before, ::after {
+    font-family: 'Times New Roman', Times, 'Newsreader', Georgia, serif;
+  }
+
+  html {
+    font-family: 'Times New Roman', Times, 'Newsreader', Georgia, serif;
+    background-color: #f6f4ef;
+    color: #1c1917;
+  }
+
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    letter-spacing: -0.011em;
-    background-color: #090d16;
-    color: #f1f5f9;
+    font-family: 'Times New Roman', Times, 'Newsreader', Georgia, serif;
+    letter-spacing: 0.01em;
+    background-color: #f6f4ef;
+    color: #1c1917;
+    line-height: 1.65;
   }
   
   h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.02em;
+    font-family: 'Times New Roman', Times, 'Newsreader', Georgia, serif;
+    letter-spacing: -0.01em;
+    font-weight: 700;
   }
 
-  .font-serif, .editorial-text {
-    font-family: 'Newsreader', 'Georgia', serif;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  }
-  
   code, pre, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.02em;
+    font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+    letter-spacing: -0.01em;
+  }
+
+  button, input, select, textarea, label {
+    font-family: 'Times New Roman', Times, 'Newsreader', Georgia, serif;
   }
 }
 
-/* Institutional refined scrollbars */
+/* Warm minimal highlighting utility */
+.warm-highlight {
+  background-color: #fef08a;
+  color: #1c1917;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.2rem;
+  font-weight: 600;
+}
+
+.amber-highlight {
+  background-color: #fef3c7;
+  color: #78350f;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.2rem;
+  font-weight: 600;
+  border: 1px solid #fde68a;
+}
+
+/* Warm minimal paper-like refined scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(11, 15, 23, 0.8);
+  background: #ede8df;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.6);
-  border-radius: 3px;
+  background: #d4cec2;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 0.9);
+  background: #b5ada0;
 }

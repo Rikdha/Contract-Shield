@@ -46,11 +46,7 @@ export const ContractChatbot: React.FC<ContractChatbotProps> = ({
     {
       id: 'init-1',
       role: 'model',
-      text: `Welcome to the ContractShield AI Legal Advisor.
-
-I translate dense legal terminology into clear, accessible language, identifying contractual liabilities, termination traps, and restrictive covenants before execution.
-
-Select a quick inquiry below, type your question, or tap the microphone to begin a voice consultation.`,
+      text: `Welcome to the Contract Shield Legal Advisor.\n\nI translate complex legal provisions and smart contract invariants into clear, plain language, identifying uncapped liabilities, termination traps, and restrictive covenants.\n\nSelect a quick inquiry below or type your question to begin.`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -58,7 +54,6 @@ Select a quick inquiry below, type your question, or tap the microphone to begin
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [enableSearch, setEnableSearch] = useState(true);
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -103,9 +98,28 @@ Select a quick inquiry below, type your question, or tap the microphone to begin
     }
   }, []);
 
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      scrollToBottom();
+    }
+  }, [messages, isOpen]);
+
+  if (!isOpen) return null;
+
+  const toggleMic = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      setSpeechTranscript('');
+      recognitionRef.current.start();
+    }
+  };
 
   const handleSpeak = (text: string) => {
     if (!('speechSynthesis' in window)) return;
@@ -116,232 +130,141 @@ Select a quick inquiry below, type your question, or tap the microphone to begin
       return;
     }
 
-    const cleanText = text.replace(/[*#_`>-]/g, '').trim();
+    const cleanText = text.replace(/[*#_`]/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
-    utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
 
+    setIsSpeaking(true);
     window.speechSynthesis.speak(utterance);
   };
 
-  const toggleMic = () => {
-    if (!recognitionRef.current) return;
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      setSpeechTranscript('');
-      try {
-        recognitionRef.current.start();
-      } catch (e) {
-        console.warn('Could not start recognition', e);
-      }
-    }
-  };
-
-  const handleSendMessage = async (userText?: string) => {
-    const textToSend = userText || input;
-    if (!textToSend.trim() || isLoading) return;
+  const handleSendMessage = async (textToSend?: string) => {
+    const queryText = (textToSend || input).trim();
+    if (!queryText) return;
 
     const userMessage: ChatMessage = {
-      id: `usr-${Date.now()}`,
+      id: `user-${Date.now()}`,
       role: 'user',
-      text: textToSend,
+      text: queryText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setSpeechTranscript('');
     setIsLoading(true);
 
-    let contextStr = '';
-    if (activeContract) {
-      contextStr = `Contract Title: ${activeContract.title} (v${activeContract.version})\nType: ${activeContract.contract_type}\nRisk Index: ${activeContract.risk_score}/100\n\nKey Clauses:\n`;
-      activeContract.clauses.forEach(c => {
-        contextStr += `Section ${c.clause_number} (${c.category}): ${c.text}\n`;
-      });
-      if (activeContract.risk_flags.length > 0) {
-        contextStr += `\nFlagged Risk Areas:\n`;
-        activeContract.risk_flags.forEach(f => {
-          contextStr += `- ${f.rule_name} (${f.severity} RISK): ${f.issue_summary}\n`;
-        });
-      }
-    }
-
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const contractContext = activeContract
+        ? `Contract: ${activeContract.title} (${activeContract.contract_type})\nRisk Score: ${activeContract.risk_score}/100\nKey Clauses:\n${activeContract.clauses.map(c => `[Clause ${c.clause_number} - ${c.category}]: ${c.text}`).join('\n')}`
+        : 'No specific contract loaded. Answering general legal & security inquiries.';
 
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
         body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({
-            role: m.role,
-            text: m.text,
-          })),
+          query: queryText,
+          context: contractContext,
           enableSearch,
-          contractContext: contextStr,
         }),
       });
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error('Chat service unavailable');
+        throw new Error('Advisor service temporarily busy');
       }
 
       const data = await response.json();
-      const sources: Array<{ title?: string; uri?: string }> = [];
-      if (data.grounding?.chunks) {
-        data.grounding.chunks.forEach((chunk: any) => {
-          if (chunk.web?.uri) {
-            sources.push({
-              title: chunk.web.title || 'Legal Reference',
-              uri: chunk.web.uri,
-            });
-          }
-        });
-      }
-
       const botMessage: ChatMessage = {
         id: `bot-${Date.now()}`,
         role: 'model',
-        text: data.reply,
+        text: data.reply || 'Analysis completed with verified risk heuristics.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        groundingSources: sources.length > 0 ? sources : undefined,
+        groundingSources: data.groundingSources,
       };
 
       setMessages(prev => [...prev, botMessage]);
-
-      if (isVoiceActive) {
-        handleSpeak(data.reply);
-      }
     } catch (err: any) {
-      const lower = textToSend.toLowerCase();
-      let smartAnswer = `Here is an objective legal analysis of your inquiry:\n\n`;
-
-      if (lower.includes('non-compete') || lower.includes('compete') || lower.includes('california')) {
-        smartAnswer += `1. **Contractual Scope:** The clause establishes a 36-month worldwide non-compete prohibiting work across software and artificial intelligence.\n2. **Statutory Enforceability:** Under California Business and Professions Code 16600 and modern antitrust enforcement frameworks, post-employment covenants not to compete are generally void against public policy.\n3. **Recommended Position:** Propose substituting this provision with a reasonable 6-month non-solicitation agreement restricted solely to clients you directly served.`;
-      } else if (lower.includes('indemnif') || lower.includes('liability') || lower.includes('lose') || lower.includes('money')) {
-        smartAnswer += `1. **Exposure Analysis:** The contract currently enforces uncapped unilateral indemnification.\n2. **Financial Risk:** In the event of third-party litigation or dissatisfaction, your organization would bear uncapped defense and liability costs with zero reciprocal protection.\n3. **Recommended Position:** Introduce a bilateral liability cap equivalent to total fees paid during the preceding 12 months, with an express waiver of consequential damages.`;
-      } else if (lower.includes('ip') || lower.includes('invention') || lower.includes('patent') || lower.includes('own')) {
-        smartAnswer += `1. **Ownership Scope:** The counterparty asserts assignment of all works created during the term and for 5 years thereafter, irrespective of company equipment or working hours.\n2. **Compliance Concern:** This compromises your independent toolsets, open-source libraries, and personal inventions.\n3. **Recommended Position:** Restrict intellectual property assignment exclusively to final paid deliverables created under an authorized Statement of Work, preserving pre-existing IP.`;
-      } else if (lower.includes('email') || lower.includes('negotiate') || lower.includes('draft')) {
-        smartAnswer += `Here is a formal negotiation communication template:\n\n\`\`\`text\nDear [Counterparty Name],\n\nThank you for transmitting the draft agreement for review.\n\nFollowing compliance review against our institutional governance standards, we request three standard adjustments:\n1. Mutual limitation of liability capped at aggregate fees paid over the preceding 12 months.\n2. Clarification that intellectual property assignment applies solely to deliverables accepted and paid for under the Statement of Work.\n3. Narrowing the restrictive covenant to a standard 6-month non-solicitation of active clients.\n\nWe look forward to executing the finalized agreement upon these updates.\n\nSincerely,\n[Your Name]\n\`\`\``;
-      } else {
-        smartAnswer += `Upon evaluating this agreement against corporate risk standards, the primary areas of exposure are:\n1. Uncapped indemnification liability in Section 2.\n2. Broad non-compete restraint in Section 3.\n3. Overbroad post-termination IP assignment in Section 1.\n\nSelect "View Remediation" on any highlighted clause in the document viewer to review balanced replacement text.`;
-      }
-
-      const botMessage: ChatMessage = {
-        id: `bot-${Date.now()}`,
+      const fallbackResponse: ChatMessage = {
+        id: `bot-fallback-${Date.now()}`,
         role: 'model',
-        text: smartAnswer,
+        text: getSimulatedAdvisorResponse(queryText, activeContract),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-
-      setMessages(prev => [...prev, botMessage]);
-
-      if (isVoiceActive) {
-        handleSpeak(smartAnswer);
-      }
+      setMessages(prev => [...prev, fallbackResponse]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleQuickPrompt = (promptText: string) => {
-    handleSendMessage(promptText);
+  const getSimulatedAdvisorResponse = (query: string, contract?: ContractDoc): string => {
+    const q = query.toLowerCase();
+    if (q.includes('indemnif') || q.includes('liability') || q.includes('risk')) {
+      return `### Key Risk Exposure in Clause 2.0 (Indemnification)\n\n**The Trap:** Section 2.0 currently imposes UNLIMITED, uncapped liability on the service provider while disclaiming reciprocal counterparty liability.\n\n**Recommendation:** Strike this provision and replace with a mutual liability cap tied to fees paid over the preceding 12 months.`;
+    }
+    if (q.includes('non-compete') || q.includes('restrictive') || q.includes('covenant')) {
+      return `### Restrictive Covenant Analysis (Clause 3.0)\n\n**Issue:** A 36-month global non-compete is geographically overbroad and unenforceable in many major jurisdictions. However, it still creates significant operational and legal harassment exposure.\n\n**Recommendation:** Narrow the restriction to a 6-month non-solicitation of active clients personally serviced.`;
+    }
+    if (q.includes('reentrancy') || q.includes('smart') || q.includes('solidity')) {
+      return `### Smart Contract Reentrancy Vulnerability (SWC-107)\n\n**Analysis:** The contract executes an external call (\`msg.sender.call{value: amount}("")\`) before updating the user balance mapping. This violates the Checks-Effects-Interactions (CEI) design pattern.\n\n**Fix:** Update state variables prior to making external calls and apply OpenZeppelin's \`ReentrancyGuard\` \`nonReentrant\` modifier.`;
+    }
+    return `### Legal Audit Assessment\n\nI have reviewed your inquiry regarding "${query}". Based on institutional contract standards, this provision creates disproportionate counterparty exposure.\n\n**Actionable Advice:** We recommend requesting mutual reciprocity and defining clear notice periods (30 days written notice) for all renewals and dispute escalations.`;
   };
 
-  if (!isOpen) return null;
+  const handleQuickPrompt = (prompt: string) => {
+    handleSendMessage(prompt);
+  };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-[95vw] sm:w-[440px] h-[600px] max-h-[85vh] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-3">
+    <div 
+      className="fixed bottom-6 right-6 z-50 w-96 sm:w-[440px] h-[580px] max-h-[85vh] flex flex-col bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5"
+      style={{ fontFamily: "'Times New Roman', Times, 'Newsreader', Georgia, serif" }}
+    >
       {/* Top Header */}
-      <div className="p-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+      <div className="flex items-center justify-between px-5 py-3.5 bg-[#f5f2eb] border-b border-[#dfd9cd] text-xs">
         <div className="flex items-center space-x-2.5">
-          <div className="w-7 h-7 rounded-lg bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
+          <div className="w-7 h-7 rounded bg-stone-900 text-[#f6f4ef] flex items-center justify-center font-bold">
             <Bot className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center space-x-1.5">
-              <span className="font-semibold text-sm text-white font-heading">AI Legal Advisor</span>
-              <span className="text-slate-500 text-xs">·</span>
-              <span className="text-[11px] text-slate-400 font-normal">
-                {activeContract ? activeContract.title.slice(0, 20) + '...' : 'General'}
-              </span>
+              <span className="font-bold text-stone-900 text-sm">Contract Shield Legal Advisor</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
             </div>
-            <p className="text-[10px] text-slate-400">
-              Plain-language clause breakdown & negotiation guidance
-            </p>
+            <span className="text-[11px] text-stone-600 italic block">
+              Plain-English guidance & negotiation assistance
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-1">
-          {/* Voice Mode Toggle */}
-          <button
-            onClick={() => {
-              const nextState = !isVoiceActive;
-              setIsVoiceActive(nextState);
-              if (!nextState && isSpeaking) {
-                window.speechSynthesis?.cancel();
-                setIsSpeaking(false);
-              }
-            }}
-            className={`p-1.5 rounded-lg text-xs transition flex items-center space-x-1 ${
-              isVoiceActive
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-            title={isVoiceActive ? 'Voice narration active' : 'Enable voice readouts'}
-          >
-            {isVoiceActive ? <Volume2 className="w-3.5 h-3.5 text-rose-400" /> : <VolumeX className="w-3.5 h-3.5" />}
-          </button>
-
-          {/* Search Grounding Toggle */}
+        <div className="flex items-center space-x-2">
+          {/* Grounding toggle */}
           <button
             onClick={() => setEnableSearch(!enableSearch)}
-            className={`p-1.5 rounded-lg text-xs transition flex items-center space-x-1 ${
+            className={`px-2 py-1 rounded border text-[11px] flex items-center space-x-1 font-bold transition ${
               enableSearch
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+                ? 'bg-amber-100 text-amber-950 border-amber-300'
+                : 'bg-[#fbfaf7] text-stone-600 border-[#dfd9cd]'
             }`}
-            title={enableSearch ? 'Google Search Grounding Enabled' : 'Google Search Grounding Disabled'}
+            title="Toggle Google Search Precedent Grounding"
           >
             <Globe className="w-3.5 h-3.5" />
+            <span className="text-[10px]">Search</span>
           </button>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded text-stone-500 hover:text-stone-900 hover:bg-[#ede8df] transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Voice Mode Active Waveform Banner */}
-      {isVoiceActive && (
-        <div className="px-3 py-1.5 bg-slate-950 border-b border-rose-900/30 flex items-center justify-between text-[11px] text-rose-300">
-          <div className="flex items-center space-x-1.5">
-            <Radio className="w-3 h-3 text-rose-400 animate-spin" />
-            <span className="font-semibold font-mono text-[10px] uppercase">Voice Conversation Engine Active</span>
-          </div>
-          <span className="text-[10px] text-slate-400">
-            {isSpeaking ? 'Narrating response...' : 'Microphone standby'}
-          </span>
-        </div>
-      )}
-
-      {/* Chat Messages Scroll View */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs bg-slate-950/60">
+      {/* Messages Scroll Area */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs bg-[#eeebe3]">
         {messages.map((msg) => {
           const isUser = msg.role === 'user';
 
@@ -351,41 +274,41 @@ Select a quick inquiry below, type your question, or tap the microphone to begin
               className={`flex items-start space-x-2.5 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}
             >
               <div
-                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-mono font-bold ${
+                className={`w-7 h-7 rounded flex items-center justify-center shrink-0 text-xs font-bold ${
                   isUser
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-cyan-300 border border-slate-700'
+                    ? 'bg-stone-900 text-[#f6f4ef]'
+                    : 'bg-[#fbfaf7] text-stone-800 border border-[#dfd9cd]'
                 }`}
               >
                 {isUser ? <UserIcon className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
               </div>
 
               <div
-                className={`max-w-[82%] p-3 rounded-2xl space-y-1.5 shadow-sm leading-relaxed ${
+                className={`max-w-[85%] p-3.5 rounded-lg space-y-2 shadow-xs leading-relaxed ${
                   isUser
-                    ? 'bg-blue-600 text-white rounded-tr-none'
-                    : 'bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none font-sans'
+                    ? 'bg-stone-900 text-[#f6f4ef] rounded-tr-none'
+                    : 'bg-[#fcfbfa] text-stone-900 border border-[#d8d2c4] rounded-tl-none font-serif'
                 }`}
               >
-                <div className="whitespace-pre-wrap text-[11px] leading-relaxed">
+                <div className="whitespace-pre-wrap text-xs leading-relaxed">
                   {msg.text}
                 </div>
 
-                {/* Grounding sources citation chips */}
+                {/* Grounding sources */}
                 {msg.groundingSources && msg.groundingSources.length > 0 && (
-                  <div className="pt-2 mt-2 border-t border-slate-800/80 space-y-1">
-                    <span className="text-[10px] font-bold text-cyan-400 flex items-center gap-1 font-mono">
-                      <Globe className="w-3 h-3" />
-                      Google Search Verified Sources:
+                  <div className="pt-2 mt-2 border-t border-[#ece7dd] space-y-1">
+                    <span className="text-[10px] font-bold text-stone-700 flex items-center gap-1">
+                      <Globe className="w-3 h-3 text-stone-600" />
+                      Verified Precedents:
                     </span>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {msg.groundingSources.slice(0, 3).map((src, i) => (
                         <a
                           key={i}
                           href={src.uri}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-slate-950 text-[10px] text-slate-300 hover:text-cyan-300 border border-slate-800 transition truncate max-w-[200px]"
+                          className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-[#f5f2eb] text-[10px] text-stone-700 hover:text-stone-900 border border-[#dfd9cd] transition truncate max-w-[200px]"
                         >
                           <span className="truncate">{src.title || 'Legal Reference'}</span>
                           <ExternalLink className="w-2.5 h-2.5 shrink-0" />
@@ -395,15 +318,15 @@ Select a quick inquiry below, type your question, or tap the microphone to begin
                   </div>
                 )}
 
-                <div className="flex items-center justify-between text-[9px] text-slate-400 pt-0.5">
+                <div className="flex items-center justify-between text-[10px] text-stone-500 pt-1 border-t border-[#f0ecdf]">
                   <span>{msg.timestamp}</span>
                   {!isUser && (
                     <button
                       onClick={() => handleSpeak(msg.text)}
-                      className="text-slate-400 hover:text-cyan-300 p-0.5 rounded transition"
-                      title="Listen to audio narration"
+                      className="text-stone-500 hover:text-stone-900 p-0.5 rounded transition"
+                      title="Audio narration"
                     >
-                      <Volume2 className="w-3 h-3" />
+                      <Volume2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -413,49 +336,42 @@ Select a quick inquiry below, type your question, or tap the microphone to begin
         })}
 
         {isLoading && (
-          <div className="flex items-center space-x-2 text-slate-400 text-xs p-2">
-            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span className="text-[11px]">ContractShield is evaluating legal risk...</span>
+          <div className="flex items-center space-x-2 text-stone-600 text-xs p-2">
+            <div className="w-2 h-2 rounded-full bg-stone-900 animate-ping" />
+            <span className="text-xs italic">Evaluating legal risk factors...</span>
           </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggested Plain-English Quick Action Chips (NO EMOJIS) */}
-      <div className="p-2 bg-slate-950 border-t border-slate-800/80 overflow-x-auto flex items-center space-x-1.5 text-[11px] no-scrollbar">
+      {/* Suggested Quick Prompt Buttons */}
+      <div className="p-2.5 bg-[#f5f2eb] border-t border-[#dfd9cd] overflow-x-auto flex items-center space-x-2 text-xs">
         <button
           onClick={() => handleQuickPrompt("What are the primary risk factors in this contract?")}
-          className="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 border border-slate-800 shrink-0 transition flex items-center space-x-1"
+          className="px-3 py-1 rounded bg-[#fbfaf7] hover:bg-[#ede8df] text-stone-800 border border-[#dfd9cd] shrink-0 transition flex items-center space-x-1 font-bold"
         >
-          <AlertTriangle className="w-3 h-3 text-rose-400" />
-          <span>Primary Risk Factors</span>
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+          <span>Primary Risks</span>
         </button>
         <button
           onClick={() => handleQuickPrompt("Explain Section 2 in plain language: what are the implications for me?")}
-          className="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 border border-slate-800 shrink-0 transition flex items-center space-x-1"
+          className="px-3 py-1 rounded bg-[#fbfaf7] hover:bg-[#ede8df] text-stone-800 border border-[#dfd9cd] shrink-0 transition flex items-center space-x-1 font-bold"
         >
-          <FileText className="w-3 h-3 text-cyan-400" />
-          <span>Explain Section 2</span>
+          <FileText className="w-3.5 h-3.5 text-stone-700" />
+          <span>Explain Clause</span>
         </button>
         <button
           onClick={() => handleQuickPrompt("Draft a formal letter to negotiate the liability and restrictive covenant terms")}
-          className="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 border border-slate-800 shrink-0 transition flex items-center space-x-1"
+          className="px-3 py-1 rounded bg-[#fbfaf7] hover:bg-[#ede8df] text-stone-800 border border-[#dfd9cd] shrink-0 transition flex items-center space-x-1 font-bold"
         >
-          <Mail className="w-3 h-3 text-indigo-400" />
-          <span>Draft Negotiation Letter</span>
-        </button>
-        <button
-          onClick={() => handleQuickPrompt("Check current FTC and California statutory rules on non-compete enforceability")}
-          className="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 border border-slate-800 shrink-0 transition flex items-center space-x-1"
-        >
-          <Globe className="w-3 h-3 text-cyan-400" />
-          <span>Search Legal Precedents</span>
+          <Mail className="w-3.5 h-3.5 text-stone-700" />
+          <span>Negotiation Email</span>
         </button>
       </div>
 
       {/* Bottom Input Area */}
-      <div className="p-3 bg-slate-950 border-t border-slate-800">
+      <div className="p-3.5 bg-[#f5f2eb] border-t border-[#dfd9cd]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -467,14 +383,14 @@ Select a quick inquiry below, type your question, or tap the microphone to begin
             <button
               type="button"
               onClick={toggleMic}
-              className={`p-2 rounded-xl border transition ${
+              className={`p-2 rounded border transition ${
                 isListening
-                  ? 'bg-rose-500 text-white border-rose-400 animate-pulse'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border-slate-800'
+                  ? 'bg-rose-100 text-rose-900 border-rose-300 animate-pulse'
+                  : 'bg-[#fbfaf7] text-stone-700 hover:text-stone-900 border border-[#dfd9cd]'
               }`}
               title={isListening ? 'Stop listening' : 'Speak inquiry'}
             >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-cyan-400" />}
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
           )}
 
@@ -485,17 +401,15 @@ Select a quick inquiry below, type your question, or tap the microphone to begin
             placeholder={
               isListening
                 ? 'Listening to speech...'
-                : enableSearch
-                ? 'Ask a contract question (Google Search enabled)...'
                 : 'Ask about any clause or liability in plain language...'
             }
-            className="flex-1 bg-slate-900 text-slate-200 text-xs px-3 py-2 rounded-xl border border-slate-800 focus:outline-none focus:border-cyan-500 placeholder-slate-500"
+            className="flex-1 bg-[#fcfbfa] text-stone-900 text-xs px-3.5 py-2 rounded border border-[#dfd9cd] focus:outline-hidden placeholder:text-stone-500 font-serif"
           />
 
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 text-white transition shadow-md shadow-cyan-500/20"
+            className="p-2 rounded bg-stone-900 hover:bg-stone-800 disabled:opacity-40 text-[#f6f4ef] transition shadow-xs"
           >
             <Send className="w-4 h-4" />
           </button>

@@ -21,9 +21,11 @@ import {
   PieChart,
   Calendar,
   Layers,
-  Activity
+  Activity,
+  Building2
 } from 'lucide-react';
 import { exportPortfolioPdf } from '../services/pdfReportService';
+import { FaultIsolationBoundary } from './FaultIsolationBoundary';
 
 interface PortfolioAnalyticsViewProps {
   contracts: ContractDoc[];
@@ -47,7 +49,7 @@ export const PortfolioAnalyticsView: React.FC<PortfolioAnalyticsViewProps> = ({
     return c.contract_type === typeFilter;
   });
 
-  // Generate 30 days of historical risk trend data based on contracts
+  // Generate historical risk trend data
   const historicalTrendData = useMemo(() => {
     const points: RiskHistoryPoint[] = [];
     const today = new Date();
@@ -57,36 +59,34 @@ export const PortfolioAnalyticsView: React.FC<PortfolioAnalyticsViewProps> = ({
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
-      const dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-      const variance = Math.sin(i / 3) * 6 + (i * 0.4);
+      const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const variance = Math.sin(i * 0.7) * 7 + (days - i) * -0.4;
       const score = Math.max(15, Math.min(95, Math.round(baseScore + variance)));
-      const highRisks = Math.max(0, Math.round((score / 100) * (contracts.length * 2.5)));
 
       points.push({
-        date: dateLabel,
+        date: formattedDate,
         avgRiskScore: score,
-        highRiskCount: highRisks,
-        totalAudited: Math.max(1, contracts.length),
+        highRiskCount: stats.totalHighRisks,
+        totalAudited: contracts.length,
       });
     }
 
     if (points.length > 0) {
-      points[points.length - 1].avgRiskScore = stats.averageRiskScore || 45;
+      points[points.length - 1].avgRiskScore = baseScore;
     }
 
     return points;
   }, [stats.averageRiskScore, contracts.length, timeRange]);
 
   const getRiskColor = (score: number) => {
-    if (score >= 70) return '#f43f5e'; // Rose
-    if (score >= 40) return '#f59e0b'; // Amber
-    return '#10b981'; // Emerald
+    if (score >= 70) return '#991b1b'; // Red
+    if (score >= 40) return '#92400e'; // Amber
+    return '#065f46'; // Emerald
   };
 
   const getRiskLabel = (score: number) => {
     if (score >= 70) return 'High Risk';
-    if (score >= 40) return 'Moderate';
+    if (score >= 40) return 'Moderate Risk';
     return 'Compliant';
   };
 
@@ -100,13 +100,13 @@ export const PortfolioAnalyticsView: React.FC<PortfolioAnalyticsViewProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `ContractShield-Portfolio-Report-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `ContractShield-Portfolio-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
   const exportSummaryMarkdown = () => {
-    let md = `# ContractShield Portfolio Risk and Compliance Audit\n\n`;
+    let md = `# Contract Shield Portfolio Risk and Compliance Audit\n\n`;
     md += `**Organization:** ${currentUserOrg || 'Enterprise Client'}\n`;
     md += `**Audit Timestamp:** ${new Date().toUTCString()}\n`;
     md += `**Total Isolated Contracts:** ${stats.totalContracts}\n`;
@@ -139,352 +139,320 @@ export const PortfolioAnalyticsView: React.FC<PortfolioAnalyticsViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Header & Export Action Strip */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
-        <div>
-          <div className="flex items-center space-x-2">
-            <h2 className="text-base font-semibold text-white font-heading">
-              Portfolio Risk & Compliance Overview
-            </h2>
-            <span className="text-slate-500 text-xs">·</span>
-            <span className="text-slate-400 text-xs">
-              {currentUserOrg || 'Organization Workspace'}
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Real-time compliance surveillance, risk velocity tracking, and corporate remediation metrics.
-          </p>
-        </div>
-
-        {/* Clean, quiet action buttons */}
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleExportPdf}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-xs font-medium text-white shadow-sm transition"
-            title="Download executive PDF audit report"
-          >
-            <FileDown className="w-3.5 h-3.5" />
-            <span>Export PDF Report</span>
-          </button>
-          <button
-            onClick={exportSummaryMarkdown}
-            className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-medium text-slate-300 border border-slate-800 transition"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-400" />
-            <span>Markdown</span>
-          </button>
-          <button
-            onClick={exportPortfolioCsv}
-            className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-medium text-slate-300 border border-slate-800 transition"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-400" />
-            <span>CSV</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Stat Cards (Refined Clean Grid with Hairline Dividers) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/80">
-          <div className="text-xs text-slate-400 mb-1">
-            Total Audited Contracts
-          </div>
-          <div className="text-2xl font-bold font-mono text-white">
-            {stats.totalContracts}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-1">
-            Validated in-memory via SHA-256
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/80">
-          <div className="text-xs text-slate-400 mb-1">
-            Average Portfolio Risk
-          </div>
-          <div className="flex items-baseline space-x-2">
-            <span className={`text-2xl font-bold font-mono ${
-              stats.averageRiskScore >= 70 ? 'text-rose-400' :
-              stats.averageRiskScore >= 40 ? 'text-amber-400' :
-              'text-emerald-400'
-            }`}>
-              {stats.averageRiskScore}
-            </span>
-            <span className="text-xs text-slate-500 font-mono">/ 100</span>
-          </div>
-          <div className="text-[11px] text-slate-400 mt-1 flex items-center space-x-1">
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              stats.averageRiskScore >= 70 ? 'bg-rose-500' :
-              stats.averageRiskScore >= 40 ? 'bg-amber-500' :
-              'bg-emerald-500'
-            }`} />
-            <span>Tier: {getRiskLabel(stats.averageRiskScore)}</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/80">
-          <div className="text-xs text-slate-400 mb-1">
-            Critical Risk Flags
-          </div>
-          <div className="text-2xl font-bold font-mono text-rose-400">
-            {stats.totalHighRisks}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-1">
-            Requires active legal remediation
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/80">
-          <div className="text-xs text-slate-400 mb-1">
-            Remediated Agreements
-          </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400">
-            {stats.remediatedCount}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-1">
-            Playbook compliance verified
-          </div>
-        </div>
-      </div>
-
-      {/* RECHARTS 30-DAY RISK TRAJECTORY LINE CHART */}
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-8" style={{ fontFamily: "'Times New Roman', Times, 'Newsreader', Georgia, serif" }}>
+      {/* SECTION 5.1: TOP HEADER & ACTIONS */}
+      <FaultIsolationBoundary sectionTitle="Analytics Header" sectionCode="SEC-AN1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#dfd9cd]">
           <div>
-            <h3 className="text-sm font-semibold text-white font-heading">
-              Risk Index Velocity (Past {timeRange.replace('d', ' Days')})
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Day-over-day tracking of portfolio risk exposure. Lower score indicates safer contracts.
+            <div className="flex items-center space-x-2">
+              <h3 className="text-xl font-bold text-stone-900">
+                Portfolio Risk & Exposure Analytics
+              </h3>
+              <span className="text-stone-400">·</span>
+              <span className="text-stone-700 text-xs font-semibold bg-[#eeebe3] px-2 py-0.5 rounded border border-[#d6cfbf]">
+                {currentUserOrg || 'Organization Workspace'}
+              </span>
+            </div>
+            <p className="text-xs text-stone-600 mt-1">
+              Surveillance of portfolio risk velocity, category liability concentrations, and approved remediations.
             </p>
           </div>
 
-          <div className="flex items-center space-x-3 text-xs">
-            {/* Clean Legend */}
-            <div className="hidden md:flex items-center space-x-3 text-[11px] text-slate-400">
-              <span className="flex items-center space-x-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>Compliant (&lt;40)</span>
-              </span>
-              <span className="flex items-center space-x-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                <span>Moderate (40-69)</span>
-              </span>
-              <span className="flex items-center space-x-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                <span>High (&ge;70)</span>
-              </span>
-            </div>
-
-            {/* Time interval filter buttons */}
-            <div className="inline-flex p-0.5 bg-slate-950 rounded-lg border border-slate-800 text-[11px]">
-              {(['7d', '14d', '30d'] as const).map(tr => (
-                <button
-                  key={tr}
-                  onClick={() => setTimeRange(tr)}
-                  className={`px-2.5 py-1 rounded-md transition ${
-                    timeRange === tr
-                      ? 'bg-slate-800 text-white font-medium'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {tr.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Recharts Area Chart */}
-        <div className="h-[260px] w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={historicalTrendData}
-              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          {/* Action buttons */}
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleExportPdf}
+              className="flex items-center space-x-2 px-4 py-2 rounded bg-stone-900 hover:bg-stone-800 text-xs font-bold text-[#f6f4ef] shadow-xs transition"
+              title="Download executive PDF audit report"
             >
-              <defs>
-                <linearGradient id="riskAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis 
-                dataKey="date" 
-                stroke="#64748b" 
-                tick={{ fill: '#94a3b8', fontSize: 11 }}
-                tickLine={false}
-                axisLine={{ stroke: '#334155' }}
-              />
-              <YAxis 
-                domain={[0, 100]} 
-                stroke="#64748b" 
-                tick={{ fill: '#94a3b8', fontSize: 11 }}
-                tickLine={false}
-                axisLine={{ stroke: '#334155' }}
-                ticks={[0, 20, 40, 60, 80, 100]}
-              />
-              <ReferenceLine y={70} stroke="#f43f5e" strokeDasharray="4 4" strokeOpacity={0.5} />
-              <ReferenceLine y={40} stroke="#10b981" strokeDasharray="4 4" strokeOpacity={0.5} />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload as RiskHistoryPoint;
-                    const color = getRiskColor(data.avgRiskScore);
-                    const label = getRiskLabel(data.avgRiskScore);
-
-                    return (
-                      <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-lg shadow-xl text-xs space-y-1 font-sans">
-                        <div className="text-slate-400 font-mono text-[10px] pb-1 border-b border-slate-800">
-                          {data.date}
-                        </div>
-                        <div className="flex items-center justify-between space-x-3 pt-1">
-                          <span className="text-slate-300">Average Risk:</span>
-                          <span className="font-mono font-bold" style={{ color }}>
-                            {data.avgRiskScore} / 100
-                          </span>
-                        </div>
-                        <div className="text-[11px]" style={{ color }}>
-                          Classification: {label}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="avgRiskScore"
-                stroke="#06b6d4"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#riskAreaGrad)"
-                dot={{ r: 2.5, fill: '#06b6d4', stroke: '#0f172a', strokeWidth: 1 }}
-                activeDot={{ r: 4, fill: '#22d3ee', stroke: '#ffffff', strokeWidth: 1.5 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+              <FileDown className="w-4 h-4" />
+              <span>Export PDF Report</span>
+            </button>
+            <button
+              onClick={exportSummaryMarkdown}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded bg-[#fbfaf7] hover:bg-[#ede8df] text-xs font-bold text-stone-800 border border-[#dfd9cd] transition"
+            >
+              <Download className="w-3.5 h-3.5 text-stone-600" />
+              <span>Markdown</span>
+            </button>
+            <button
+              onClick={exportPortfolioCsv}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded bg-[#fbfaf7] hover:bg-[#ede8df] text-xs font-bold text-stone-800 border border-[#dfd9cd] transition"
+            >
+              <Download className="w-3.5 h-3.5 text-stone-600" />
+              <span>CSV Ledger</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </FaultIsolationBoundary>
 
-      {/* Category Risk Hotspots */}
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-xl p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-white font-heading">
-          Risk Exposure by Legal Category
-        </h3>
+      {/* SECTION 5.2: KPI METRIC CARDS */}
+      <FaultIsolationBoundary sectionTitle="Key Performance Indicators" sectionCode="SEC-AN2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="p-5 rounded-lg bg-[#fbfaf7] border border-[#dfd9cd] shadow-xs">
+            <div className="text-xs text-stone-600 font-medium mb-1">
+              Total Audited Contracts
+            </div>
+            <div className="text-3xl font-bold text-stone-900 my-1">
+              {stats.totalContracts}
+            </div>
+            <div className="text-xs text-stone-500 italic mt-1">
+              Isolated workspace documents
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {Object.entries(stats.categoryBreakdown).map(([category, count]) => {
-            const percentage = Math.round((count / (stats.totalHighRisks + stats.totalMediumRisks || 1)) * 100);
-            return (
-              <div key={category} className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/60 text-xs">
-                <div className="flex justify-between items-center mb-1.5 font-medium">
-                  <span className="text-slate-300">{category}</span>
-                  <span className="text-cyan-400 font-mono text-[11px]">{count} flags ({percentage}%)</span>
-                </div>
-                <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                  <div
-                    className="h-full bg-cyan-500 rounded-full"
-                    style={{ width: `${Math.min(100, percentage * 2)}%` }}
-                  />
-                </div>
+          <div className="p-5 rounded-lg bg-[#fbfaf7] border border-[#dfd9cd] shadow-xs">
+            <div className="text-xs text-stone-600 font-medium mb-1">
+              Average Portfolio Risk
+            </div>
+            <div className="flex items-baseline space-x-2 my-1">
+              <span className={`text-3xl font-bold ${
+                stats.averageRiskScore >= 70 ? 'text-rose-800' :
+                stats.averageRiskScore >= 40 ? 'text-amber-800' :
+                'text-emerald-800'
+              }`}>
+                {stats.averageRiskScore}
+              </span>
+              <span className="text-xs text-stone-500 font-normal">/ 100</span>
+            </div>
+            <div className="text-xs text-stone-700 mt-1 flex items-center space-x-1.5 font-bold">
+              <span className={`w-2 h-2 rounded-full ${
+                stats.averageRiskScore >= 70 ? 'bg-rose-600' :
+                stats.averageRiskScore >= 40 ? 'bg-amber-600' :
+                'bg-emerald-600'
+              }`} />
+              <span>Posture: {getRiskLabel(stats.averageRiskScore)}</span>
+            </div>
+          </div>
+
+          <div className="p-5 rounded-lg bg-[#fbfaf7] border border-[#dfd9cd] shadow-xs">
+            <div className="text-xs text-stone-600 font-medium mb-1">
+              Critical Risk Flags
+            </div>
+            <div className="text-3xl font-bold text-rose-800 my-1">
+              {stats.totalHighRisks}
+            </div>
+            <div className="text-xs text-stone-500 italic mt-1">
+              Requires active clause negotiation
+            </div>
+          </div>
+
+          <div className="p-5 rounded-lg bg-[#fbfaf7] border border-[#dfd9cd] shadow-xs">
+            <div className="text-xs text-stone-600 font-medium mb-1">
+              Remediated Agreements
+            </div>
+            <div className="text-3xl font-bold text-emerald-800 my-1">
+              {stats.remediatedCount}
+            </div>
+            <div className="text-xs text-stone-500 italic mt-1">
+              Shield compliance approved
+            </div>
+          </div>
+        </div>
+      </FaultIsolationBoundary>
+
+      {/* SECTION 5.3: RISK VELOCITY CHART */}
+      <FaultIsolationBoundary sectionTitle="Risk Trajectory Chart" sectionCode="SEC-AN3">
+        <section className="bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg p-6 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wide">
+                Risk Velocity Trajectory (Past {timeRange.replace('d', ' Days')})
+              </h3>
+              <p className="text-xs text-stone-600 mt-0.5">
+                Surveillance of portfolio risk over time. Downward slope indicates successful risk mitigations.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-4 text-xs">
+              <div className="hidden md:flex items-center space-x-3 text-xs text-stone-600">
+                <span className="flex items-center space-x-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                  <span>Compliant (&lt;40)</span>
+                </span>
+                <span className="flex items-center space-x-1">
+                  <span className="w-2 h-2 rounded-full bg-amber-600" />
+                  <span>Moderate (40-69)</span>
+                </span>
+                <span className="flex items-center space-x-1">
+                  <span className="w-2 h-2 rounded-full bg-rose-600" />
+                  <span>High (&ge;70)</span>
+                </span>
               </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Contract Inventory Table */}
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center space-x-2">
-            <span className="font-semibold text-white text-sm font-heading">
-              Contract Inventory & Risk Ranking
-            </span>
-            <span className="text-slate-500 font-mono text-xs">
-              ({filteredContracts.length} agreements)
-            </span>
+              {/* Interval filter */}
+              <div className="inline-flex p-1 bg-[#ede8df] rounded border border-[#d6cfbf] text-xs font-bold text-stone-700">
+                {(['7d', '14d', '30d'] as const).map(tr => (
+                  <button
+                    key={tr}
+                    onClick={() => setTimeRange(tr)}
+                    className={`px-3 py-1 rounded transition ${
+                      timeRange === tr
+                        ? 'bg-[#fbfaf7] text-stone-900 shadow-xs font-bold'
+                        : 'hover:text-stone-900'
+                    }`}
+                  >
+                    {tr.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-1 text-xs">
-            <span className="text-slate-500 text-[11px] mr-1">Type:</span>
-            {['ALL', 'MSA', 'SLA', 'EMPLOYMENT', 'VENDOR'].map(t => (
-              <button
-                key={t}
-                onClick={() => setTypeFilter(t)}
-                className={`px-2.5 py-1 rounded transition text-[11px] ${
-                  typeFilter === t
-                    ? 'bg-slate-800 text-white font-medium'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
+          {/* Recharts Area Chart */}
+          <div className="h-[270px] w-full pt-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={historicalTrendData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
               >
-                {t}
-              </button>
-            ))}
+                <defs>
+                  <linearGradient id="riskAreaGradWarm" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1c1917" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#1c1917" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e6e1d5" vertical={false} />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#78716c" 
+                  tick={{ fill: '#44403c', fontSize: 11, fontFamily: 'Times New Roman' }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#d6cfbf' }}
+                />
+                <YAxis 
+                  domain={[0, 100]} 
+                  stroke="#78716c" 
+                  tick={{ fill: '#44403c', fontSize: 11, fontFamily: 'Times New Roman' }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#d6cfbf' }}
+                  ticks={[0, 20, 40, 60, 80, 100]}
+                />
+                <ReferenceLine y={70} stroke="#e11d48" strokeDasharray="4 4" strokeOpacity={0.7} />
+                <ReferenceLine y={40} stroke="#059669" strokeDasharray="4 4" strokeOpacity={0.7} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload as RiskHistoryPoint;
+                      const color = getRiskColor(data.avgRiskScore);
+                      const label = getRiskLabel(data.avgRiskScore);
+
+                      return (
+                        <div className="bg-[#fbfaf7] border border-[#d6cfbf] p-3 rounded shadow-sm text-xs space-y-1 font-serif">
+                          <div className="text-stone-500 text-[11px] pb-1 border-b border-[#ece7dd]">
+                            {data.date}
+                          </div>
+                          <div className="flex items-center justify-between space-x-3 pt-1">
+                            <span className="text-stone-700">Average Risk:</span>
+                            <span className="font-bold text-sm" style={{ color }}>
+                              {data.avgRiskScore} / 100
+                            </span>
+                          </div>
+                          <div className="text-[11px] font-bold" style={{ color }}>
+                            Status: {label}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="avgRiskScore"
+                  stroke="#1c1917"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#riskAreaGradWarm)"
+                  dot={{ r: 3, fill: '#1c1917', stroke: '#f6f4ef', strokeWidth: 1.5 }}
+                  activeDot={{ r: 5, fill: '#1c1917', stroke: '#f6f4ef', strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
+        </section>
+      </FaultIsolationBoundary>
+
+      {/* SECTION 5.4: CATEGORY HOTSPOTS & PORTFOLIO INVENTORY */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column (5 cols): Category Exposure */}
+        <div className="lg:col-span-5 space-y-4">
+          <FaultIsolationBoundary sectionTitle="Category Hotspots" sectionCode="SEC-AN4">
+            <section className="bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg p-6 shadow-xs space-y-4">
+              <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wide">
+                Risk Exposure by Category
+              </h3>
+
+              <div className="space-y-3.5">
+                {Object.entries(stats.categoryBreakdown).map(([category, count]) => {
+                  const percentage = Math.round((count / (stats.totalHighRisks + stats.totalMediumRisks || 1)) * 100);
+                  return (
+                    <div key={category} className="p-3.5 rounded bg-[#f5f2eb] border border-[#e2ddd1] text-xs">
+                      <div className="flex justify-between items-center mb-1.5 font-bold">
+                        <span className="text-stone-900">{category}</span>
+                        <span className="text-stone-800 text-[11px] bg-[#e8e3d6] px-2 py-0.5 rounded">{count} flags ({percentage}%)</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-[#e0dad0] overflow-hidden">
+                        <div
+                          className="h-full bg-stone-900 rounded-full"
+                          style={{ width: `${Math.min(100, percentage * 2)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </FaultIsolationBoundary>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/50 text-[11px] font-medium text-slate-400 border-b border-slate-800/80">
-              <tr>
-                <th className="p-3 pl-4">Agreement</th>
-                <th className="p-3">Type</th>
-                <th className="p-3">Version</th>
-                <th className="p-3">SHA-256 Hash</th>
-                <th className="p-3">Risk Index</th>
-                <th className="p-3">Status</th>
-                <th className="p-3 text-right pr-4">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {filteredContracts.map((c) => (
-                <tr
-                  key={c.id}
-                  onClick={() => onSelectContract(c)}
-                  className="hover:bg-slate-800/30 cursor-pointer transition group"
-                >
-                  <td className="p-3 pl-4 font-medium text-white group-hover:text-cyan-300 transition">
-                    {c.title}
-                  </td>
-                  <td className="p-3 text-slate-400 font-mono text-[11px]">
-                    {c.contract_type}
-                  </td>
-                  <td className="p-3 text-slate-400 font-mono text-[11px]">
-                    v{c.version}
-                  </td>
-                  <td className="p-3 font-mono text-[11px] text-slate-500">
-                    {c.sha256.substring(0, 16)}...
-                  </td>
-                  <td className="p-3">
-                    <span className={`font-mono font-semibold text-xs ${
-                      c.risk_score >= 70 ? 'text-rose-400' :
-                      c.risk_score >= 40 ? 'text-amber-400' :
-                      'text-emerald-400'
-                    }`}>
-                      {c.risk_score} / 100
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <span className="flex items-center space-x-1.5 text-[11px] text-slate-400">
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        c.status === 'REMEDIATED' ? 'bg-emerald-500' :
-                        c.status === 'IN_REVIEW' ? 'bg-amber-500' :
-                        'bg-slate-500'
-                      }`} />
-                      <span>{c.status === 'REMEDIATED' ? 'Remediated' : c.status === 'IN_REVIEW' ? 'In Review' : 'Audited'}</span>
-                    </span>
-                  </td>
-                  <td className="p-3 text-right pr-4">
-                    <span className="inline-flex items-center text-cyan-400 text-xs font-medium group-hover:translate-x-0.5 transition-transform">
-                      Inspect <ArrowUpRight className="w-3.5 h-3.5 ml-0.5" />
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Right Column (7 cols): Audited Contracts Table */}
+        <div className="lg:col-span-7 space-y-4">
+          <FaultIsolationBoundary sectionTitle="Inventory Table" sectionCode="SEC-AN5">
+            <section className="bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg overflow-hidden shadow-xs">
+              <div className="p-5 border-b border-[#ece7dd] flex items-center justify-between text-xs">
+                <h3 className="font-bold text-stone-900 uppercase tracking-wide">
+                  Audited Contracts Registry
+                </h3>
+                <span className="text-stone-600 font-bold bg-[#ede8df] px-2.5 py-0.5 rounded">
+                  {contracts.length} Total
+                </span>
+              </div>
+
+              <div className="divide-y divide-[#ece7dd]">
+                {contracts.map(c => (
+                  <div
+                    key={c.id}
+                    onClick={() => onSelectContract(c)}
+                    className="p-4 hover:bg-[#f5f2eb] transition cursor-pointer flex items-center justify-between text-xs gap-4"
+                  >
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-stone-900 text-sm truncate">
+                        {c.title}
+                      </h4>
+                      <div className="text-xs text-stone-600 flex items-center space-x-2 mt-1">
+                        <span className="font-semibold text-stone-800">v{c.version}</span>
+                        <span>·</span>
+                        <span>{c.contract_type}</span>
+                        <span>·</span>
+                        <span>{c.clauses.length} clauses</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded border ${
+                        c.risk_score >= 70 ? 'bg-rose-100 text-rose-900 border-rose-300' :
+                        c.risk_score >= 40 ? 'bg-amber-100 text-amber-900 border-amber-300' :
+                        'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      }`}>
+                        {c.risk_score} / 100 Risk
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </FaultIsolationBoundary>
         </div>
       </div>
     </div>

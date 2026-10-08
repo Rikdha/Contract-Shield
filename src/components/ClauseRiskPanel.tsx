@@ -43,49 +43,49 @@ function getPlainEnglishExplanation(category: string, ruleName: string): { title
   if (ruleName.includes('Indemnification') || category.includes('Liability')) {
     return {
       title: 'Unlimited Liability Trap (One-Sided Financial Exposure)',
-      explanation: 'If the other party is sued or unhappy with your work, they expect you to pay all legal fees and damages with no cap on the total cost, while they assume zero reciprocal responsibility.',
-      action: 'Demand a mutual liability cap equal to the fees actually paid to you over the prior 12 months.',
+      explanation: 'If the counterparty incurs damages or dispute costs, they expect you to cover unlimited costs, while assuming zero reciprocal accountability.',
+      action: 'Demand a mutual liability cap equal to fees paid over the preceding 12 months.',
     };
   }
   if (ruleName.includes('Non-Compete') || category.includes('Restrictive')) {
     return {
-      title: 'Career Restraint Covenant (3-Year Industry Exclusion)',
-      explanation: 'This clause attempts to prevent you from taking another job, consulting, or starting a business anywhere in software or technology for 36 months after leaving.',
-      action: 'Strike this out or narrow it to a 6-month non-solicitation of active clients whom you directly served.',
+      title: 'Broad Restrictive Covenant (3-Year Industry Exclusion)',
+      explanation: 'This clause attempts to prevent you from providing services or operating in the software sector globally for 36 months following termination.',
+      action: 'Strike out or narrow to a 6-month non-solicitation of active clients directly served.',
     };
   }
   if (ruleName.includes('IP') || ruleName.includes('Landgrab') || category.includes('Intellectual Property')) {
     return {
-      title: 'Post-Termination IP Assignment (Loss of Personal Inventions)',
-      explanation: 'They claim ownership of everything you invent or write—even on your personal equipment, during your off-hours, for five years after this contract terminates.',
-      action: 'Specify that they only own the deliverables specifically paid for, while you retain all prior tools, codebases, and independent works.',
+      title: 'Broad IP Assignment (Loss of Personal Inventions)',
+      explanation: 'Assigns all pre-existing tools, open-source libraries, and off-hours inventions to the client indefinitely.',
+      action: 'Specify client ownership only for paid Statement of Work deliverables, retaining prior IP and tools.',
     };
   }
   if (ruleName.includes('Auto-Renewal') || category.includes('Term & Renewal')) {
     return {
-      title: 'Automatic Multi-Year Renewal with Unilateral Escalation',
-      explanation: 'Unless you send written certified postal mail in a narrow 30-day window, you are automatically locked in for another 24-month term with up to 50% price increases.',
-      action: 'Convert this to month-to-month renewal with standard 30-day email cancellation notice and capped annual rate adjustments.',
+      title: 'Auto-Renewal with Unilateral Escalation',
+      explanation: 'Locks you into successive 24-month renewals with up to 50% price escalation unless notice is served in a narrow window.',
+      action: 'Switch to month-to-month renewal with 30-day email notice and capped CPI rate adjustments.',
     };
   }
   if (ruleName.includes('Venue') || ruleName.includes('Arbitration') || category.includes('Dispute')) {
     return {
-      title: 'Asymmetric Foreign Arbitration Jurisdiction',
-      explanation: 'In the event of a dispute, you are forced to travel to an expensive offshore location (such as the Cayman Islands), imposing prohibitive travel and legal costs.',
-      action: 'Designate your local state court or neutral mutual arbitration.',
+      title: 'Asymmetric Foreign Dispute Jurisdiction',
+      explanation: 'Mandates offshore arbitration incurring prohibitive legal and travel costs in the event of dispute.',
+      action: 'Designate mutual local jurisdiction or neutral mutual arbitration.',
     };
   }
   if (ruleName.includes('Withholding') || category.includes('Payment')) {
     return {
       title: 'Unilateral Payment Withholding Discretion',
-      explanation: 'The client reserves the right to reduce or cancel milestone payments based purely on subjective internal feelings.',
-      action: 'Require payment of undisputed invoices within 30 days, with mandatory written notice and a 10-day cure period for bona fide disputes.',
+      explanation: 'Permits the client to withhold fees based on subjective internal dissatisfaction.',
+      action: 'Require payment of undisputed invoices within 30 days, with 10-day notice and cure for disputes.',
     };
   }
   return {
-    title: 'Unbalanced Contract Clause',
-    explanation: 'This clause disproportionately favors the counterparty and creates unmitigated legal exposure.',
-    action: 'Review and apply the balanced market-standard wording recommended below.',
+    title: 'Unbalanced Agreement Provision',
+    explanation: 'Disproportionately favors the counterparty and creates unmitigated operational exposure.',
+    action: 'Review and apply balanced market-standard compromise wording below.',
   };
 }
 
@@ -98,24 +98,24 @@ function generateClientFallbackOptions(category: string, ruleName: string): Reme
     return [
       {
         id: 'opt-1',
-        title: 'Option 1: Mutual 12-Month Liability Cap',
+        title: 'Option 1: Mutual Liability Cap (Market Standard)',
         posture: 'Mutual Compromise',
-        explanation: 'Standard market compromise capping exposure for both parties equally at 12 months fees, disclaiming consequential damages.',
-        text: 'Each party’s aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at the total fees actually paid or payable by Company to Contractor in the twelve (12) months preceding the claim. In no event shall either party be liable for any indirect, special, incidental, or consequential damages.',
+        explanation: 'Caps liability symmetrically for both parties at 12 months fees, disclaiming all consequential damages.',
+        text: 'Each party’s aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at the total fees actually paid or payable by Company to Contractor in the twelve (12) months preceding the claim. In no event shall either party be liable for indirect, special, or consequential damages.',
       },
       {
         id: 'opt-2',
         title: 'Option 2: Signer-Protective Safe Harbor',
-        posture: 'Signer Protective',
-        explanation: 'Excludes contractor liability entirely except for proven intentional gross misconduct, shifting project usage risk to the client.',
-        text: 'Contractor shall have no liability to Company or any third party for any damages, losses, or claims arising from the deliverables, except in cases of proven intentional gross misconduct. Company agrees to defend, indemnify, and hold harmless Contractor against all third-party claims arising from Company’s use of the deliverables.',
+        posture: 'Maximum Protection',
+        explanation: 'Excludes contractor liability entirely except for willful intentional gross misconduct.',
+        text: 'Contractor shall have no liability to Company or any third party for any damages, losses, or claims arising from deliverables, except in cases of proven intentional gross misconduct. Company agrees to indemnify and hold harmless Contractor against third-party claims arising from Company’s deployment.',
       },
       {
         id: 'opt-3',
-        title: 'Option 3: Fixed Dollar Exposure Ceiling ($10,000)',
-        posture: 'Narrowed Scope',
-        explanation: 'Caps exposure at a predictable flat dollar amount with strict 30-day written notice and cure requirements.',
-        text: 'Notwithstanding anything to the contrary, Contractor’s total cumulative liability for all claims arising under this Agreement shall not exceed the lesser of $10,000 or the total compensation received. Any indemnification claim is contingent upon Company providing prompt written notice within thirty (30) days.',
+        title: 'Option 3: Fixed Dollar Exposure Ceiling',
+        posture: 'Narrowed Exposure',
+        explanation: 'Fixes total exposure at a predictable flat dollar amount with written notice and cure requirements.',
+        text: 'Notwithstanding anything to the contrary, Contractor’s total liability for all claims arising under this Agreement shall not exceed the lesser of $10,000 or total contract compensation received. Any indemnification claim is contingent upon Company providing prompt written notice within thirty (30) days.',
       },
     ];
   }
@@ -126,53 +126,26 @@ function generateClientFallbackOptions(category: string, ruleName: string): Reme
         id: 'opt-1',
         title: 'Option 1: Narrow Client Non-Solicit (6 Months)',
         posture: 'Mutual Compromise',
-        explanation: 'Replaces the excessive global industry restriction with a standard 6-month non-solicitation of directly served clients.',
-        text: 'For a period of six (6) months following termination of this Agreement, Contractor shall not directly solicit the business of any active client of Company whom Contractor personally and substantially provided services to during the engagement. No general restriction on software engineering, technology consulting, or independent business shall apply.',
+        explanation: 'Replaces broad industry ban with a reasonable 6-month non-solicitation of active directly served clients.',
+        text: 'For a period of six (6) months following termination of this Agreement, Contractor shall not directly solicit the business of any active client of Company whom Contractor personally and substantially provided services to during the engagement. No general restriction on software engineering or consulting shall apply.',
       },
       {
         id: 'opt-2',
-        title: 'Option 2: Complete Deletion (Right-to-Work)',
-        posture: 'Signer Protective',
-        explanation: 'Explicitly strikes out the non-compete covenant in compliance with California Bus. & Prof. Code § 16600 and modern labor policy.',
+        title: 'Option 2: Right-to-Work Clause',
+        posture: 'Maximum Protection',
+        explanation: 'Affirms unencumbered right to practice profession without restriction, in line with California Bus. & Prof. Code § 16600.',
         text: 'The parties acknowledge and agree that Contractor retains the complete and unrestricted right to provide services, seek employment, and operate in any industry or geographic region without restriction. Any non-competition covenant is hereby struck and void.',
       },
       {
         id: 'opt-3',
-        title: 'Option 3: Fully Paid Garden Leave Stanza',
+        title: 'Option 3: Paid Standstill (Garden Leave)',
         posture: 'Compensated Standstill',
-        explanation: 'Allows non-compete only if Company pays 100% full monthly compensation during the restricted standstill duration.',
-        text: 'Any covenant not to compete shall apply solely for a maximum duration of three (3) months and shall be contingent upon Company paying Contractor 100% of the average monthly contract compensation for each month of the restriction period.',
+        explanation: 'Restricts competition solely if client pays full compensation for the standstill duration.',
+        text: 'Any covenant not to compete shall apply solely for a maximum duration of three (3) months and shall be contingent upon Company paying Contractor 100% of average monthly contract compensation for each month of the restriction period.',
       },
     ];
   }
 
-  if (cat.includes('intellectual') || cat.includes('ip') || rule.includes('ip') || rule.includes('inventions')) {
-    return [
-      {
-        id: 'opt-1',
-        title: 'Option 1: Deliverables-Only Assignment (Tool Retainer)',
-        posture: 'Mutual Compromise',
-        explanation: 'Transfers ownership of paid custom deliverables while explicitly protecting your pre-existing tools and independent frameworks.',
-        text: 'Company shall exclusively own all final custom deliverables created and paid for pursuant to an authorized Statement of Work. Contractor exclusively retains all right, title, and interest in all pre-existing tools, codebases, frameworks, developer utilities, and independently authored materials.',
-      },
-      {
-        id: 'opt-2',
-        title: 'Option 2: Commercial License Only (Contractor Retains IP)',
-        posture: 'Signer Protective',
-        explanation: 'Contractor retains ultimate IP ownership and grants the company a perpetual, royalty-free commercial usage license.',
-        text: 'Contractor retains full intellectual property ownership of all software and materials created. Subject to payment in full, Contractor grants Company a perpetual, worldwide, non-exclusive, royalty-free license to use, modify, and deploy the deliverables for internal business operations.',
-      },
-      {
-        id: 'opt-3',
-        title: 'Option 3: Strict On-Hours & Company Equipment Boundary',
-        posture: 'Personal Boundary Carve-Out',
-        explanation: 'Carves out strict protection for everything created outside paid client hours and personal hardware.',
-        text: 'Ownership assignments shall apply exclusively to inventions conceived solely during working hours, using Company-provided equipment, and directly related to Company’s current proprietary software. Contractor retains full title to all independent off-hours works.',
-      },
-    ];
-  }
-
-  // General fallback
   return [
     {
       id: 'opt-1',
@@ -183,16 +156,16 @@ function generateClientFallbackOptions(category: string, ruleName: string): Reme
     },
     {
       id: 'opt-2',
-      title: 'Option 2: Strict Notice & Cure Safe Harbor',
-      posture: 'Due Process Safeguard',
+      title: 'Option 2: Strict Notice & 30-Day Cure',
+      posture: 'Safe Harbor',
       explanation: 'Requires 30 days written notice with mandatory cure opportunity before any penalty can be assessed.',
       text: 'Prior to exercising any remedy, withholding, or claim under this Section, the non-breaching party must provide thirty (30) days detailed written notice specifying the deficiency, and provide thirty (30) days to cure such breach in good faith.',
     },
     {
       id: 'opt-3',
-      title: 'Option 3: Balanced Neutral Commercial Wording',
-      posture: 'Narrowed Exposure',
-      explanation: 'Restricts scope to direct documented damages under governing commercial laws.',
+      title: 'Option 3: Scope-Restricted Commercial Terms',
+      posture: 'Narrowed Scope',
+      explanation: 'Restricts obligations strictly to direct documented damages under standard commercial law.',
       text: 'Any rights or remedies under this Section shall be strictly limited to direct, documented damages and governed by standard commercial equity principles without punitive penalties or unilateral forfeiture.',
     },
   ];
@@ -211,26 +184,25 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
   const [filterSeverity, setFilterSeverity] = useState<string>('ALL');
   const [plainEnglishMode, setPlainEnglishMode] = useState<boolean>(true);
   const [expandedRemediations, setExpandedRemediations] = useState<{ [clauseId: number]: boolean }>({});
+  const [suggestionsMap, setSuggestionsMap] = useState<{ [clauseId: number]: RemediationOption[] }>({});
+  const [loadingMap, setLoadingMap] = useState<{ [clauseId: number]: boolean }>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [appliedOptionMap, setAppliedOptionMap] = useState<{ [clauseId: number]: string }>({});
 
-  // AI Alternative suggestions state
-  const [suggestionsMap, setSuggestionsMap] = useState<{ [clauseId: number]: RemediationOption[] }>({});
-  const [loadingMap, setLoadingMap] = useState<{ [clauseId: number]: boolean }>({});
-
-  // Automatically fetch 3 alternative clauses for all high-risk flags
+  // Auto load suggestions for the selected clause
   useEffect(() => {
-    clauses.forEach((clause) => {
-      const flags = riskFlags.filter(f => f.clause_id === clause.id);
-      const isHigh = flags.some(f => f.severity === 'HIGH');
-
-      if (isHigh && !suggestionsMap[clause.id] && !loadingMap[clause.id]) {
-        fetchAlternativesForClause(clause, flags[0]);
+    if (selectedClauseId) {
+      const clause = clauses.find(c => c.id === selectedClauseId);
+      const flag = riskFlags.find(f => f.clause_id === selectedClauseId);
+      if (clause && !suggestionsMap[selectedClauseId]) {
+        fetchAlternativesForClause(clause, flag);
       }
-    });
-  }, [clauses, riskFlags]);
+    }
+  }, [selectedClauseId]);
 
   const fetchAlternativesForClause = async (clause: Clause, flag?: RiskFlag) => {
+    if (suggestionsMap[clause.id] || loadingMap[clause.id]) return;
+
     setLoadingMap(prev => ({ ...prev, [clause.id]: true }));
 
     try {
@@ -240,8 +212,8 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
         body: JSON.stringify({
           clauseText: clause.text,
           category: clause.category,
-          ruleName: flag?.rule_name || clause.category,
-          issueSummary: flag?.issue_summary || 'High risk contractual exposure',
+          ruleName: flag?.rule_name || 'Commercial Risk',
+          issueSummary: flag?.suggested_alternative || 'Unbalanced legal exposure',
         }),
       });
 
@@ -254,10 +226,9 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
         }
       }
     } catch (err) {
-      console.warn('API suggestion fetch failed, using expert fallback:', err);
+      console.warn('API suggestion fetch failed, using fallback:', err);
     }
 
-    // Fallback if network or server unavailable
     const fallbacks = generateClientFallbackOptions(clause.category, flag?.rule_name || '');
     setSuggestionsMap(prev => ({ ...prev, [clause.id]: fallbacks }));
     setLoadingMap(prev => ({ ...prev, [clause.id]: false }));
@@ -269,7 +240,6 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
       [clauseId]: !prev[clauseId],
     }));
 
-    // If opened and suggestions don't exist yet, trigger fetch
     if (!suggestionsMap[clauseId] && !loadingMap[clauseId]) {
       const clause = clauses.find(c => c.id === clauseId);
       const flag = riskFlags.find(f => f.clause_id === clauseId);
@@ -297,57 +267,60 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
     return flags.some(f => f.severity === filterSeverity);
   });
 
-  const getScoreColor = (score: number) => {
-    if (score >= 70) return 'text-rose-400';
-    if (score >= 40) return 'text-amber-400';
-    return 'text-emerald-400';
+  const getScoreBadgeClass = (score: number) => {
+    if (score >= 70) return 'text-rose-700 bg-rose-50 border-rose-200';
+    if (score >= 40) return 'text-amber-700 bg-amber-50 border-amber-200';
+    return 'text-emerald-700 bg-emerald-50 border-emerald-200';
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900/50 border border-slate-800/80 rounded-xl overflow-hidden">
+    <div 
+      className="flex flex-col h-full bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg overflow-hidden shadow-xs"
+      style={{ fontFamily: "'Times New Roman', Times, 'Newsreader', Georgia, serif" }}
+    >
       {/* Panel Header */}
-      <div className="p-4 bg-slate-950/80 border-b border-slate-800/80 space-y-3">
+      <div className="p-4 sm:p-5 bg-[#f5f2eb] border-b border-[#dfd9cd] space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <ShieldAlert className="w-4 h-4 text-cyan-400" />
-            <h3 className="font-semibold text-white text-sm font-heading">
-              Risk Diagnostics & AI Remediation
+            <ShieldAlert className="w-4 h-4 text-stone-800" />
+            <h3 className="font-bold text-stone-900 text-xs uppercase tracking-wider">
+              Risk Diagnostics & Remediation Studio
             </h3>
           </div>
 
           {/* Clean Risk Score */}
           <div className="flex items-center space-x-2">
-            <span className="text-[11px] text-slate-400">Risk Index:</span>
-            <span className={`font-mono font-bold text-sm ${getScoreColor(riskScore)}`}>
-              {riskScore}/100
+            <span className="text-xs text-stone-600 font-medium">Risk Index:</span>
+            <span className={`font-bold text-xs px-2.5 py-0.5 rounded border ${getScoreBadgeClass(riskScore)}`}>
+              {riskScore} / 100
             </span>
           </div>
         </div>
 
         {/* Filter Bar & Plain English Toggle */}
         <div className="flex items-center justify-between text-xs pt-1">
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1.5">
             {['ALL', 'HIGH', 'MEDIUM', 'SAFE'].map(sev => (
               <button
                 key={sev}
                 onClick={() => setFilterSeverity(sev)}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                className={`px-3 py-1 rounded text-xs transition ${
                   filterSeverity === sev
-                    ? 'bg-slate-800 text-white font-semibold'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                    ? 'bg-stone-900 text-[#f6f4ef] font-bold shadow-xs'
+                    : 'text-stone-700 hover:text-stone-900 hover:bg-[#e6e2d8]'
                 }`}
               >
-                {sev === 'ALL' ? 'All Clauses' : sev === 'SAFE' ? 'Compliant' : `${sev}`}
+                {sev === 'ALL' ? 'All Clauses' : sev === 'SAFE' ? 'Compliant' : `${sev} Risk`}
               </button>
             ))}
           </div>
 
           <button
             onClick={() => setPlainEnglishMode(!plainEnglishMode)}
-            className={`flex items-center space-x-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1 rounded text-xs font-bold transition ${
               plainEnglishMode
-                ? 'bg-amber-950/40 text-amber-300 border border-amber-800/50'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-amber-100 text-amber-950 border border-amber-300'
+                : 'text-stone-700 hover:text-stone-900 hover:bg-[#e6e2d8] border border-transparent'
             }`}
           >
             <Lightbulb className="w-3.5 h-3.5" />
@@ -357,11 +330,11 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
       </div>
 
       {/* Clauses Risk List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
         {filteredClauses.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 space-y-2">
-            <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-            <p className="text-xs">No clauses found matching the current filter criteria.</p>
+          <div className="p-8 text-center text-stone-500 space-y-2 bg-[#f6f4ef] rounded border border-[#dfd9cd]">
+            <CheckCircle2 className="w-6 h-6 text-stone-400 mx-auto" />
+            <p className="text-xs font-bold text-stone-700">No clauses matching this filter</p>
           </div>
         ) : (
           filteredClauses.map((clause) => {
@@ -369,7 +342,7 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
             const isSelected = selectedClauseId === clause.id;
             const primaryFlag = flags[0];
             const isHighRisk = flags.some(f => f.severity === 'HIGH');
-            const isRemediationOpen = expandedRemediations[clause.id] !== false; // Open by default for clarity
+            const isRemediationOpen = expandedRemediations[clause.id] !== false;
             const suggestions = suggestionsMap[clause.id];
             const isLoadingSuggestions = loadingMap[clause.id];
             const appliedOptionTitle = appliedOptionMap[clause.id];
@@ -388,39 +361,39 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
               <div
                 key={clause.id}
                 onClick={() => onSelectClause(clause.id)}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                className={`p-4 rounded border transition-all cursor-pointer ${
                   isSelected
-                    ? 'border-cyan-500/50 bg-slate-900/90 ring-1 ring-cyan-500/20 shadow-md'
-                    : 'border-slate-800/80 bg-slate-950/70 hover:border-slate-700/80 hover:bg-slate-900/40'
+                    ? 'border-stone-500 bg-[#f5f2eb] ring-1 ring-stone-400 shadow-xs'
+                    : 'border-[#dfd9cd] bg-[#fcfbfa] hover:border-[#b8b09f]'
                 }`}
               >
                 {/* Clause Header */}
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <div className="flex items-center space-x-1.5 font-medium truncate">
-                    <span className="font-mono font-semibold text-white">
-                      Section {clause.clause_number}
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <div className="flex items-center space-x-2 font-medium truncate">
+                    <span className="font-bold text-stone-900">
+                      Clause {clause.clause_number}
                     </span>
-                    <span className="text-slate-500">·</span>
-                    <span className="text-slate-300 truncate max-w-[200px]">
+                    <span className="text-stone-400">·</span>
+                    <span className="text-stone-700 font-semibold truncate max-w-[200px]">
                       {clause.category}
                     </span>
                   </div>
 
                   {/* Clean unboxed risk indicator */}
-                  <div className="flex items-center space-x-2 shrink-0">
+                  <div className="flex items-center space-x-2.5 shrink-0">
                     {appliedOptionTitle && (
-                      <span className="flex items-center space-x-1 text-[10px] text-emerald-400 font-mono">
-                        <Check className="w-3 h-3 text-emerald-400" />
-                        <span>Patched</span>
+                      <span className="flex items-center space-x-1 text-[11px] text-emerald-800 font-bold bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-300">
+                        <Check className="w-3 h-3 text-emerald-700" />
+                        <span>Remediated</span>
                       </span>
                     )}
-                    <span className={`flex items-center space-x-1.5 font-mono text-[11px] ${
-                      highestSev === 'HIGH' ? 'text-rose-400' :
-                      highestSev === 'MEDIUM' ? 'text-amber-400' : 'text-emerald-400'
+                    <span className={`flex items-center space-x-1.5 text-xs font-bold ${
+                      highestSev === 'HIGH' ? 'text-rose-900' :
+                      highestSev === 'MEDIUM' ? 'text-amber-900' : 'text-emerald-900'
                     }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        highestSev === 'HIGH' ? 'bg-rose-500' :
-                        highestSev === 'MEDIUM' ? 'bg-amber-500' : 'bg-emerald-500'
+                      <span className={`w-2 h-2 rounded-full ${
+                        highestSev === 'HIGH' ? 'bg-rose-600' :
+                        highestSev === 'MEDIUM' ? 'bg-amber-600' : 'bg-emerald-600'
                       }`} />
                       <span>{highestSev === 'SAFE' ? 'Compliant' : `${highestSev} Risk`}</span>
                     </span>
@@ -429,38 +402,38 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
 
                 {/* Plain English Editorial Translation */}
                 {plainEnglishMode && plainInfo && (
-                  <div className="my-2 pl-3 border-l-2 border-amber-500/40 space-y-1 py-0.5">
-                    <div className="font-medium text-amber-300 text-xs flex items-center space-x-1">
+                  <div className="my-2.5 p-3 rounded bg-amber-100/70 border border-amber-300/80 space-y-1">
+                    <div className="font-bold text-amber-950 text-xs flex items-center space-x-1">
                       <span>{plainInfo.title}</span>
                     </div>
-                    <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                    <p className="text-xs text-stone-800 leading-relaxed font-serif">
                       {plainInfo.explanation}
                     </p>
-                    <div className="text-[10px] text-emerald-400 pt-0.5">
-                      <span className="font-semibold">Recommended position:</span> {plainInfo.action}
+                    <div className="text-[11px] text-stone-900 pt-0.5 font-bold">
+                      <span className="text-amber-900">Recommended position:</span> {plainInfo.action}
                     </div>
                   </div>
                 )}
 
                 {/* Original Clause Text */}
-                <div className="my-2 p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
-                  <p className="text-slate-300 leading-relaxed font-serif text-[11px]">
+                <div className="my-2.5 p-3 rounded bg-[#f6f4ef] border border-[#e2ddd1]">
+                  <p className="text-stone-800 leading-relaxed font-serif text-xs">
                     {clause.text}
                   </p>
                 </div>
 
                 {/* Action Bar */}
                 {primaryFlag && (
-                  <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                  <div className="pt-2.5 border-t border-[#ece7dd] space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3">
                         {onAskAiAboutClause && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               onAskAiAboutClause(clause.text, clause.clause_number || '');
                             }}
-                            className="flex items-center space-x-1 text-slate-400 hover:text-cyan-300 text-[11px] transition"
+                            className="flex items-center space-x-1 text-stone-600 hover:text-stone-900 text-xs font-bold transition"
                             title="Consult AI Assistant"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
@@ -473,10 +446,10 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
                             e.stopPropagation();
                             toggleRemediation(clause.id);
                           }}
-                          className="flex items-center space-x-1 text-cyan-400 hover:text-cyan-300 text-[11px] font-medium"
+                          className="flex items-center space-x-1 text-stone-700 hover:text-stone-900 text-xs font-bold"
                         >
-                          <Sparkles className="w-3 h-3 text-cyan-400" />
-                          <span>{isRemediationOpen ? 'Hide 3 Alternatives' : 'View 3 AI Alternatives'}</span>
+                          <Sparkles className="w-3 h-3 text-stone-500" />
+                          <span>{isRemediationOpen ? 'Hide 3 Alternatives' : 'View 3 Alternatives'}</span>
                           {isRemediationOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                         </button>
                       </div>
@@ -487,26 +460,26 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
                             e.stopPropagation();
                             onApplyRemediation(clause.id, primaryFlag.suggested_alternative);
                           }}
-                          className="flex items-center space-x-1 px-2.5 py-1 rounded bg-emerald-600/90 hover:bg-emerald-500 text-white text-[11px] font-medium transition shadow-xs"
+                          className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-stone-900 hover:bg-stone-800 text-[#f6f4ef] text-xs font-bold transition shadow-xs"
                           title="Apply standard balanced alternative clause"
                         >
-                          <Check className="w-3 h-3" />
+                          <Check className="w-3.5 h-3.5" />
                           <span>Apply Patch</span>
                         </button>
                       )}
                     </div>
 
-                    {/* EXPANDED 3 ALTERNATIVE CLAUSE SUGGESTIONS (FOR HIGH-RISK FLAGS) */}
+                    {/* EXPANDED 3 ALTERNATIVE CLAUSE SUGGESTIONS */}
                     {isRemediationOpen && (
-                      <div className="mt-3 space-y-2.5 pt-2 border-t border-slate-800/60">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <div className="flex items-center space-x-1.5 text-cyan-400 font-medium">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span>3 AI Alternative Suggestions (1-Click Remediation):</span>
+                      <div className="mt-3 space-y-2.5 pt-2.5 border-t border-[#ece7dd]">
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center space-x-1.5 text-stone-900 font-bold">
+                            <Sparkles className="w-3.5 h-3.5 text-stone-600" />
+                            <span>3 Pre-drafted Replacement Options:</span>
                           </div>
                           {isLoadingSuggestions && (
-                            <div className="flex items-center space-x-1 text-slate-400 text-[10px]">
-                              <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
+                            <div className="flex items-center space-x-1 text-stone-500 text-[11px] italic">
+                              <Loader2 className="w-3 h-3 animate-spin text-stone-600" />
                               <span>Drafting options...</span>
                             </div>
                           )}
@@ -514,50 +487,44 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
 
                         {/* Suggestions List */}
                         {suggestions && suggestions.length > 0 ? (
-                          <div className="space-y-2">
+                          <div className="space-y-2.5">
                             {suggestions.map((option, idx) => {
                               const isApplied = appliedOptionTitle === option.title;
 
                               return (
                                 <div
                                   key={option.id || idx}
-                                  className={`p-3 rounded-lg border transition-all text-xs space-y-1.5 ${
+                                  className={`p-3.5 rounded border transition-all text-xs space-y-2 ${
                                     isApplied
-                                      ? 'bg-emerald-950/20 border-emerald-500/50 ring-1 ring-emerald-500/30'
-                                      : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+                                      ? 'bg-emerald-100/70 border-emerald-400 ring-1 ring-emerald-300'
+                                      : 'bg-[#fcfbfa] border-[#dfd9cd] hover:border-[#b8b09f]'
                                   }`}
                                 >
                                   {/* Option Header */}
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center space-x-2">
-                                      <span className="font-semibold text-white text-[11px]">
+                                      <span className="font-bold text-stone-900 text-xs">
                                         {option.title}
                                       </span>
-                                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                                        idx === 0
-                                          ? 'bg-cyan-950 text-cyan-300 border border-cyan-800/40'
-                                          : idx === 1
-                                          ? 'bg-indigo-950 text-indigo-300 border border-indigo-800/40'
-                                          : 'bg-amber-950 text-amber-300 border border-amber-800/40'
-                                      }`}>
+                                      <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-[#eeebe3] text-stone-800 border border-[#d8d2c4]">
                                         {option.posture}
                                       </span>
                                     </div>
 
-                                    <div className="flex items-center space-x-1.5">
+                                    <div className="flex items-center space-x-2">
                                       <button
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleCopy(`${clause.id}-${option.id}`, option.text);
                                         }}
-                                        className="p-1 rounded text-slate-400 hover:text-white transition"
+                                        className="p-1 rounded text-stone-500 hover:text-stone-900 transition hover:bg-[#eeebe3]"
                                         title="Copy replacement clause"
                                       >
                                         {copiedId === `${clause.id}-${option.id}` ? (
-                                          <Check className="w-3 h-3 text-emerald-400" />
+                                          <Check className="w-3.5 h-3.5 text-emerald-700" />
                                         ) : (
-                                          <Copy className="w-3 h-3" />
+                                          <Copy className="w-3.5 h-3.5" />
                                         )}
                                       </button>
 
@@ -569,69 +536,34 @@ export const ClauseRiskPanel: React.FC<ClauseRiskPanelProps> = ({
                                             handleApplyAlternative(clause.id, option);
                                           }}
                                           disabled={isApplied}
-                                          className={`flex items-center space-x-1 px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                                          className={`flex items-center space-x-1 px-3 py-1.5 rounded text-xs font-bold transition ${
                                             isApplied
-                                              ? 'bg-emerald-800/50 text-emerald-200 cursor-default'
-                                              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs'
+                                              ? 'bg-emerald-200 text-emerald-900 cursor-default'
+                                              : 'bg-stone-900 hover:bg-stone-800 text-[#f6f4ef] shadow-xs'
                                           }`}
-                                          title="Apply this specific alternative directly to contract"
+                                          title="Apply this alternative directly"
                                         >
-                                          <Check className="w-3 h-3" />
-                                          <span>{isApplied ? 'Applied' : 'Apply Alternative'}</span>
+                                          <Check className="w-3.5 h-3.5" />
+                                          <span>{isApplied ? 'Applied' : 'Apply'}</span>
                                         </button>
                                       )}
                                     </div>
                                   </div>
 
-                                  {/* Explanation / Negotiation Strategy */}
-                                  <p className="text-[10px] text-slate-400 leading-relaxed">
-                                    <span className="text-slate-500 font-medium">Strategy:</span> {option.explanation}
+                                  {/* Strategy */}
+                                  <p className="text-xs text-stone-600 leading-relaxed">
+                                    <span className="font-bold text-stone-800">Rationale:</span> {option.explanation}
                                   </p>
 
                                   {/* Replacement Text */}
-                                  <div className="p-2 rounded bg-slate-900 border border-slate-800/80">
-                                    <p className="text-[11px] leading-relaxed text-emerald-200/90 font-serif">
-                                      {option.text}
-                                    </p>
+                                  <div className="p-2.5 rounded bg-[#f6f4ef] border border-[#e2ddd1] text-xs font-serif text-stone-800 italic leading-relaxed">
+                                    "{option.text}"
                                   </div>
                                 </div>
                               );
                             })}
                           </div>
-                        ) : (
-                          // Fallback single suggested alternative
-                          <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-900/30 space-y-1.5">
-                            <div className="flex items-center justify-between text-[10px] text-emerald-400 font-medium">
-                              <span>Standard Market Remediation:</span>
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCopy(`${clause.id}-std`, primaryFlag.suggested_alternative);
-                                  }}
-                                  className="flex items-center space-x-1 text-slate-400 hover:text-white"
-                                >
-                                  {copiedId === `${clause.id}-std` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                                  <span>{copiedId === `${clause.id}-std` ? 'Copied' : 'Copy'}</span>
-                                </button>
-                                {userRole !== 'Viewer' && userRole !== 'User' && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onApplyRemediation(clause.id, primaryFlag.suggested_alternative);
-                                    }}
-                                    className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px]"
-                                  >
-                                    Apply
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-emerald-200/90 text-[11px] leading-relaxed font-serif">
-                              {primaryFlag.suggested_alternative}
-                            </p>
-                          </div>
-                        )}
+                        ) : null}
                       </div>
                     )}
                   </div>

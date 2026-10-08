@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   FileText, 
   ShieldAlert, 
@@ -11,15 +11,19 @@ import {
   Upload, 
   Code2, 
   Sparkles, 
-  ExternalLink,
   ChevronRight,
   TrendingDown,
   Layers,
   History,
   Activity,
-  UserCheck
+  UserCheck,
+  Search,
+  Filter,
+  Building2,
+  Lock
 } from 'lucide-react';
 import { ContractDoc, PlaybookRule, RemediationAction, User } from '../types/contract';
+import { FaultIsolationBoundary } from './FaultIsolationBoundary';
 
 interface DashboardViewProps {
   contracts: ContractDoc[];
@@ -40,6 +44,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenUpload,
   onNavigateToTab,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'REMEDIATED'>('ALL');
+
   // Pending Audits: Contracts that have high/medium risk or status is IN_REVIEW
   const pendingAudits = contracts.filter(c => c.status === 'IN_REVIEW' || c.risk_score >= 40);
 
@@ -56,423 +63,354 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     ? Math.round(contracts.reduce((sum, c) => sum + c.risk_score, 0) / contracts.length)
     : 0;
 
-  // Recently Modified Contracts (sorted by uploaded_at or most recent)
-  const recentlyModified = [...contracts].sort((a, b) => {
-    return new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime();
-  }).slice(0, 6);
+  // Filtered contracts
+  const filteredContracts = contracts.filter(c => {
+    const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          c.contract_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          c.uploaded_by.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (statusFilter === 'PENDING') return c.status === 'IN_REVIEW' || c.risk_score >= 40;
+    if (statusFilter === 'REMEDIATED') return c.status === 'REMEDIATED' || c.risk_score < 40;
+    return true;
+  });
 
-  const getScoreColor = (score: number) => {
-    if (score >= 70) return 'text-rose-400';
-    if (score >= 40) return 'text-amber-400';
-    return 'text-emerald-400';
+  const getScoreBadgeClass = (score: number) => {
+    if (score >= 70) return 'text-rose-900 bg-rose-100 border-rose-300 font-bold';
+    if (score >= 40) return 'text-amber-900 bg-amber-100 border-amber-300 font-bold';
+    return 'text-emerald-900 bg-emerald-100 border-emerald-300 font-bold';
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Executive Operations Header */}
-      <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2 text-xs text-slate-400">
-              <span className="font-medium text-slate-300">{currentUser.organization}</span>
-              <span aria-hidden="true">·</span>
-              <span>Workspace Isolation Active</span>
-              <span aria-hidden="true">·</span>
-              <span className="font-mono text-cyan-400">{currentUser.name} ({currentUser.role})</span>
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-white font-heading">
-              Contract Compliance & Audit Operations
-            </h1>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              Real-time monitoring of commercial agreements, pending legal audits, automated clause remediations, and Web3 smart contract invariants.
-            </p>
-          </div>
-
-          {/* Quick Action Buttons */}
-          <div className="flex items-center space-x-2.5 shrink-0">
-            <button
-              onClick={() => onNavigateToTab('smart_contract')}
-              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-medium text-slate-300 transition"
-            >
-              <Code2 className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Smart Contract Auditor</span>
-            </button>
-
-            <button
-              onClick={onOpenUpload}
-              className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium transition shadow-md shadow-cyan-500/20"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Ingest New Contract</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Status Highlights (Clean unboxed metadata) */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-400">
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-slate-300 font-medium">{pendingAudits.length} pending audit{pendingAudits.length !== 1 ? 's' : ''}</span>
-            <span>requiring attention</span>
-          </div>
-          <span className="text-slate-700 hidden sm:inline" aria-hidden="true">·</span>
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-slate-300 font-medium">{remediatedContracts.length} contract{remediatedContracts.length !== 1 ? 's' : ''}</span>
-            <span>mitigated & compliant</span>
-          </div>
-          <span className="text-slate-700 hidden sm:inline" aria-hidden="true">·</span>
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-400" />
-            <span className="text-slate-300 font-medium">{totalHighFlags} critical flag{totalHighFlags !== 1 ? 's' : ''}</span>
-            <span>unresolved</span>
-          </div>
-          <span className="text-slate-700 hidden sm:inline" aria-hidden="true">·</span>
-          <div className="flex items-center space-x-1.5">
-            <span>Portfolio Risk Index:</span>
-            <span className={`font-mono font-bold ${getScoreColor(avgRisk)}`}>{avgRisk}/100</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Primary Layout: 2 Columns (Pending Audits & Quick-Access Cards) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column (8 cols): Pending Audits Queue & Quick-Access Cards */}
-        <div className="lg:col-span-8 space-y-6">
-          
-          {/* Section A: Pending Audits Queue */}
-          <div className="rounded-xl bg-slate-900/50 border border-slate-800/80 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-amber-400" />
-                <h2 className="text-sm font-semibold text-white font-heading">
-                  Pending Audits Queue
-                </h2>
-                <span className="text-xs text-slate-500 font-mono">
-                  ({pendingAudits.length})
+    <div className="space-y-8" style={{ fontFamily: "'Times New Roman', Times, 'Newsreader', Georgia, serif" }}>
+      {/* SECTION 1: EXECUTIVE OPERATIONS & METRICS */}
+      <FaultIsolationBoundary sectionTitle="Executive Overview" sectionCode="SEC-01">
+        <section className="bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg p-6 sm:p-7 shadow-xs">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-[#ece7dd]">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600">
+                <span className="font-bold text-stone-900">{currentUser.organization}</span>
+                <span>·</span>
+                <span className="italic">Tenant Isolated Workspace</span>
+                <span>·</span>
+                <span className="font-semibold text-stone-900">{currentUser.name}</span>
+                <span>·</span>
+                <span className="font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded border border-amber-200 text-[11px]">
+                  {currentUser.role}
                 </span>
               </div>
-              <button
-                onClick={() => onNavigateToTab('auditor')}
-                className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 transition"
-              >
-                <span>View All in Auditor</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
+              <h2 className="text-2xl font-bold tracking-tight text-stone-900">
+                Compliance & Security Assurance Ledger
+              </h2>
+              <p className="text-sm text-stone-600 max-w-2xl leading-relaxed">
+                Institutional auditor for commercial legal agreements, contract playbooks, and Web3 smart contract invariants.
+              </p>
             </div>
 
-            {pendingAudits.length === 0 ? (
-              <div className="p-6 text-center text-slate-400 space-y-1 bg-slate-950/40 rounded-lg border border-slate-800/60">
-                <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto mb-1" />
-                <p className="text-xs font-medium text-white">All Contracts Up to Date</p>
-                <p className="text-[11px] text-slate-500">There are no pending high-risk audits requiring compliance sign-off.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {pendingAudits.map((contract) => {
-                  const highFlags = contract.risk_flags.filter(f => f.severity === 'HIGH').length;
-                  const medFlags = contract.risk_flags.filter(f => f.severity === 'MEDIUM').length;
-
-                  return (
-                    <div
-                      key={contract.id}
-                      className="p-3.5 rounded-lg bg-slate-950/80 border border-slate-800 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                    >
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="text-xs font-semibold text-white truncate max-w-sm">
-                            {contract.title}
-                          </h3>
-                          <span className="text-[10px] text-slate-500 font-mono">
-                            v{contract.version}
-                          </span>
-                        </div>
-
-                        {/* Unboxed Metadata */}
-                        <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-slate-400">
-                          <span>{contract.contract_type}</span>
-                          <span aria-hidden="true">·</span>
-                          <span className="font-mono">{contract.clauses.length} clauses</span>
-                          <span aria-hidden="true">·</span>
-                          <span>Uploaded by {contract.uploaded_by}</span>
-                          <span aria-hidden="true">·</span>
-                          <span>{new Date(contract.uploaded_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-
-                      {/* Risk Indicators & Action Button */}
-                      <div className="flex items-center space-x-3 shrink-0">
-                        <div className="text-right">
-                          <div className={`font-mono text-xs font-bold ${getScoreColor(contract.risk_score)}`}>
-                            {contract.risk_score}/100 Risk
-                          </div>
-                          <div className="text-[10px] text-slate-500 font-mono">
-                            {highFlags > 0 && <span className="text-rose-400">{highFlags} High </span>}
-                            {medFlags > 0 && <span className="text-amber-400">{medFlags} Med</span>}
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => onSelectContract(contract)}
-                          className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-600 hover:text-white text-xs font-medium text-slate-200 transition"
-                        >
-                          <span>Review</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Section B: Quick-Access Cards for Recently Modified Contracts */}
-          <div className="rounded-xl bg-slate-900/50 border border-slate-800/80 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FileText className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-sm font-semibold text-white font-heading">
-                  Quick-Access Modified Contracts
-                </h2>
-              </div>
-              <span className="text-xs text-slate-500 font-mono">
-                {contracts.length} Total
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {recentlyModified.map((contract) => {
-                const highFlags = contract.risk_flags.filter(f => f.severity === 'HIGH').length;
-                const isRemediated = contract.status === 'REMEDIATED' || contract.risk_score < 40;
-
-                return (
-                  <div
-                    key={contract.id}
-                    onClick={() => onSelectContract(contract)}
-                    className="p-3.5 rounded-lg bg-slate-950/80 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900/40 transition cursor-pointer space-y-2.5 group"
-                  >
-                    {/* Card Header */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-0.5 min-w-0">
-                        <h4 className="text-xs font-semibold text-white group-hover:text-cyan-300 transition truncate">
-                          {contract.title}
-                        </h4>
-                        <div className="flex items-center space-x-1.5 text-[10px] text-slate-400">
-                          <span>{contract.contract_type}</span>
-                          <span aria-hidden="true">·</span>
-                          <span className="font-mono">v{contract.version}</span>
-                          <span aria-hidden="true">·</span>
-                          <span>{contract.file_size}</span>
-                        </div>
-                      </div>
-
-                      {/* Status dot */}
-                      <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${
-                        isRemediated ? 'bg-emerald-400' : 'bg-rose-400'
-                      }`} />
-                    </div>
-
-                    {/* Risk Bar Gauge */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px] font-mono">
-                        <span className="text-slate-400">Compliance Index:</span>
-                        <span className={getScoreColor(contract.risk_score)}>
-                          {contract.risk_score}/100 {isRemediated ? '(Compliant)' : `(${highFlags} Critical)`}
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-500 ${
-                            contract.risk_score >= 70 ? 'bg-rose-500' :
-                            contract.risk_score >= 40 ? 'bg-amber-500' : 'bg-emerald-500'
-                          }`}
-                          style={{ width: `${Math.max(5, contract.risk_score)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Bottom Action Footer */}
-                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                      <span className="text-[10px] text-slate-500">
-                        {contract.clauses.length} clauses audited
-                      </span>
-                      <span className="text-cyan-400 group-hover:translate-x-0.5 transition flex items-center space-x-1 text-[11px] font-medium">
-                        <span>Open</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column (4 cols): Recent Remediation Actions & Web3 Card */}
-        <div className="lg:col-span-4 space-y-6">
-
-          {/* Section C: Recent Remediation Actions Feed */}
-          <div className="rounded-xl bg-slate-900/50 border border-slate-800/80 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Activity className="w-4 h-4 text-emerald-400" />
-                <h2 className="text-sm font-semibold text-white font-heading">
-                  Recent Remediation Actions
-                </h2>
-              </div>
-              <button
-                onClick={() => onNavigateToTab('diff')}
-                className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 transition"
-              >
-                <span>Version Diff</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {remediations.length === 0 ? (
-                <div className="p-4 text-center text-slate-500 text-xs">
-                  <p>No recent remediations logged yet.</p>
-                </div>
-              ) : (
-                remediations.slice(0, 5).map((action) => (
-                  <div
-                    key={action.id}
-                    className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 space-y-1.5 text-xs"
-                  >
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-emerald-300 truncate max-w-[180px]">
-                        Section {action.clauseNumber} ({action.category})
-                      </span>
-                      <span className="text-slate-500 text-[10px]">
-                        {action.timestamp}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-slate-300 line-clamp-2 font-serif">
-                      "{action.remediatedSnippet}"
-                    </p>
-
-                    <div className="flex items-center justify-between text-[10px] pt-1 border-t border-slate-800/60 text-slate-400">
-                      <span className="truncate max-w-[140px]">
-                        {action.contractTitle}
-                      </span>
-                      <span className="text-emerald-400 font-mono font-medium">
-                        -{action.riskReduction} Risk Pts
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Section D: Smart Contract Security Banner */}
-          <div className="rounded-xl bg-gradient-to-br from-cyan-950/40 via-slate-900/60 to-slate-950 border border-cyan-800/40 p-4 space-y-3">
-            <div className="flex items-center space-x-2">
-              <Code2 className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-white font-heading">
-                Smart Contract Auditor
-              </h3>
-            </div>
-            <p className="text-[11px] text-slate-300 leading-relaxed">
-              Static vulnerability analyzer specializing in <strong>SWC-107 Reentrancy</strong>, <strong>SWC-101 Integer Overflows</strong>, and DeFi flash loan oracle manipulation.
-            </p>
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[10px] text-slate-400 font-mono">
-                Solidity · Vyper · Rust
-              </span>
+            {/* Primary Actions */}
+            <div className="flex items-center space-x-3 shrink-0">
               <button
                 onClick={() => onNavigateToTab('smart_contract')}
-                className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-500 text-white text-xs font-medium transition shadow-xs"
+                className="flex items-center space-x-2 px-4 py-2.5 rounded bg-[#f3efe6] hover:bg-[#eae4d7] border border-[#d8d1c2] text-xs font-bold text-stone-900 transition"
               >
-                <span>Launch Scanner</span>
-                <ArrowRight className="w-3 h-3" />
+                <Code2 className="w-4 h-4 text-stone-700" />
+                <span>Smart Contract Auditor</span>
               </button>
-            </div>
-          </div>
-
-          {/* Section E: Active Playbook Enforcement Summary */}
-          <div className="rounded-xl bg-slate-900/50 border border-slate-800/80 p-4 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Layers className="w-4 h-4 text-slate-400" />
-                <h3 className="text-sm font-semibold text-white font-heading">
-                  Compliance Guardrails
-                </h3>
-              </div>
               <button
-                onClick={() => onNavigateToTab('playbooks')}
-                className="text-[11px] text-cyan-400 hover:text-cyan-300"
+                onClick={onOpenUpload}
+                className="flex items-center space-x-2 px-4 py-2.5 rounded bg-stone-900 hover:bg-stone-800 text-[#f6f4ef] text-xs font-bold transition shadow-xs"
               >
-                Manage
+                <Upload className="w-4 h-4" />
+                <span>Ingest Agreement</span>
               </button>
-            </div>
-            <p className="text-[11px] text-slate-400">
-              {activeRules.filter(r => r.is_active).length} of {activeRules.length} corporate risk rules actively auditing agreements.
-            </p>
-            <div className="space-y-1.5 pt-1 text-[11px]">
-              {activeRules.slice(0, 3).map((rule) => (
-                <div key={rule.id} className="flex items-center justify-between text-slate-300">
-                  <span className="truncate max-w-[200px]">{rule.name}</span>
-                  <span className={`font-mono text-[10px] ${rule.severity === 'HIGH' ? 'text-rose-400' : 'text-amber-400'}`}>
-                    {rule.severity}
-                  </span>
-                </div>
-              ))}
             </div>
           </div>
 
-          {/* Section F: Indian Legal & Statutory Regulatory Alignment */}
-          <div className="rounded-xl bg-slate-900/50 border border-slate-800/80 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-semibold text-white font-heading">
-                  Indian Statutory Compliance
-                </h3>
-              </div>
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800/60">
-                Statutory Active
+          {/* Quick Metrics Bar with Ample Spacing */}
+          <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div className="p-4 rounded bg-[#f5f2eb] border border-[#e2ddd1]">
+              <span className="text-[12px] text-stone-600 block font-medium">Pending Audits</span>
+              <span className="font-bold text-2xl text-stone-900 block my-1">
+                {pendingAudits.length}
+              </span>
+              <span className="text-[11px] text-amber-800 font-bold block bg-amber-100/70 px-1.5 py-0.5 rounded w-fit border border-amber-200">
+                Action Required
               </span>
             </div>
 
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Automated audit benchmarks calibrated to Indian legal framework and order:
-            </p>
+            <div className="p-4 rounded bg-[#f5f2eb] border border-[#e2ddd1]">
+              <span className="text-[12px] text-stone-600 block font-medium">Shielded / Remediated</span>
+              <span className="font-bold text-2xl text-stone-900 block my-1">
+                {remediatedContracts.length}
+              </span>
+              <span className="text-[11px] text-emerald-800 font-bold block bg-emerald-100/70 px-1.5 py-0.5 rounded w-fit border border-emerald-200">
+                Protected & Compliant
+              </span>
+            </div>
 
-            <div className="space-y-2 text-[11px] text-slate-300 divide-y divide-slate-800/60 pt-1">
-              <div className="pt-1.5 space-y-0.5">
-                <div className="font-medium text-slate-200">
-                  • Indian Contract Act, 1872 (Section 27 & 73/74)
-                </div>
-                <div className="text-[10px] text-slate-400">
-                  Enforces void ab initio status for post-employment non-competes & bars unilateral penalty damages.
-                </div>
-              </div>
+            <div className="p-4 rounded bg-[#f5f2eb] border border-[#e2ddd1]">
+              <span className="text-[12px] text-stone-600 block font-medium">High Risk Flags</span>
+              <span className="font-bold text-2xl text-stone-900 block my-1">
+                {totalHighFlags}
+              </span>
+              <span className="text-[11px] text-rose-800 font-bold block bg-rose-100/70 px-1.5 py-0.5 rounded w-fit border border-rose-200">
+                Unresolved Clauses
+              </span>
+            </div>
 
-              <div className="pt-1.5 space-y-0.5">
-                <div className="font-medium text-slate-200">
-                  • Digital Personal Data Protection Act (DPDP Act, 2023)
-                </div>
-                <div className="text-[10px] text-slate-400">
-                  Requires verifiable consent; prohibits unauthorized telemetry exploitation & unlicensed AI model training.
-                </div>
-              </div>
-
-              <div className="pt-1.5 space-y-0.5">
-                <div className="font-medium text-slate-200">
-                  • IT Act 2000 (Sec 10A) & BSA 2023 (Sec 63 / Sec 65B)
-                </div>
-                <div className="text-[10px] text-slate-400">
-                  Validates electronic smart contracts with cryptographic SHA-256 certificate hashing for legal admissibility.
-                </div>
-              </div>
+            <div className="p-4 rounded bg-[#f5f2eb] border border-[#e2ddd1]">
+              <span className="text-[12px] text-stone-600 block font-medium">Average Portfolio Risk</span>
+              <span className="font-bold text-2xl text-stone-900 block my-1">
+                {avgRisk} <span className="text-xs text-stone-500 font-normal">/ 100</span>
+              </span>
+              <span className="text-[11px] text-stone-600 block italic">
+                Tenant Exposure Index
+              </span>
             </div>
           </div>
+        </section>
+      </FaultIsolationBoundary>
 
+      {/* SECTION 2: WORKFLOW SHORTCUT PANELS */}
+      <FaultIsolationBoundary sectionTitle="Functional Modules" sectionCode="SEC-02">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div 
+            onClick={() => onNavigateToTab('auditor')}
+            className="p-5 bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg hover:border-[#b8b09f] hover:shadow-xs transition cursor-pointer space-y-2 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded bg-[#eeebe3] text-stone-900">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-stone-900 group-hover:text-stone-700 transition">
+                  Annotated Legal Auditor
+                </h3>
+              </div>
+              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-800 transition" />
+            </div>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Examine flagged clauses with plain-English translations and one-click institutional remediation formulas.
+            </p>
+          </div>
+
+          <div 
+            onClick={() => onNavigateToTab('smart_contract')}
+            className="p-5 bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg hover:border-[#b8b09f] hover:shadow-xs transition cursor-pointer space-y-2 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded bg-[#eeebe3] text-stone-900">
+                  <Code2 className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-stone-900 group-hover:text-stone-700 transition">
+                  Smart Contract Security Studio
+                </h3>
+              </div>
+              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-800 transition" />
+            </div>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Scan Solidity contracts for reentrancy, access control holes, and run live interactive exploit simulations.
+            </p>
+          </div>
+
+          <div 
+            onClick={() => onNavigateToTab('diff')}
+            className="p-5 bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg hover:border-[#b8b09f] hover:shadow-xs transition cursor-pointer space-y-2 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded bg-[#eeebe3] text-stone-900">
+                  <GitCompare className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-stone-900 group-hover:text-stone-700 transition">
+                  Version Redline & Diffing
+                </h3>
+              </div>
+              <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-800 transition" />
+            </div>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Compare base contracts against renegotiated drafts to measure verified clause-by-clause risk reductions.
+            </p>
+          </div>
+        </section>
+      </FaultIsolationBoundary>
+
+      {/* SECTION 3 & 4: CONTRACT REGISTRY & AUDIT QUEUE */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column (8 cols): Contracts Registry with Search & Filters */}
+        <div className="lg:col-span-8 space-y-4">
+          <FaultIsolationBoundary sectionTitle="Contract Registry" sectionCode="SEC-03">
+            <section className="bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg p-6 space-y-4 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#ece7dd]">
+                <div className="flex items-center space-x-2.5">
+                  <FileText className="w-4 h-4 text-stone-800" />
+                  <h3 className="text-sm font-bold text-stone-900 tracking-wide uppercase">
+                    Institutional Contract Registry
+                  </h3>
+                  <span className="text-xs font-bold text-stone-500 bg-[#ede8df] px-2 py-0.5 rounded">
+                    {filteredContracts.length} agreements
+                  </span>
+                </div>
+
+                {/* Filter & Search controls */}
+                <div className="flex items-center space-x-2.5">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-stone-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search title, type..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 text-xs rounded bg-[#f3efe6] border border-[#d8d1c2] text-stone-900 placeholder:text-stone-500 focus:outline-hidden focus:border-stone-500 w-40 sm:w-48 font-serif"
+                    />
+                  </div>
+
+                  <div className="flex items-center p-0.5 rounded bg-[#ebe6db] text-xs font-bold text-stone-700 border border-[#d6cfbf]">
+                    <button
+                      onClick={() => setStatusFilter('ALL')}
+                      className={`px-2.5 py-1 rounded transition ${statusFilter === 'ALL' ? 'bg-[#fbfaf7] text-stone-900 shadow-xs' : 'hover:text-stone-900'}`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('PENDING')}
+                      className={`px-2.5 py-1 rounded transition ${statusFilter === 'PENDING' ? 'bg-[#fbfaf7] text-stone-900 shadow-xs' : 'hover:text-stone-900'}`}
+                    >
+                      Pending
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('REMEDIATED')}
+                      className={`px-2.5 py-1 rounded transition ${statusFilter === 'REMEDIATED' ? 'bg-[#fbfaf7] text-stone-900 shadow-xs' : 'hover:text-stone-900'}`}
+                    >
+                      Shielded
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {filteredContracts.length === 0 ? (
+                <div className="p-10 text-center text-stone-500 space-y-2 bg-[#f6f4ef] rounded border border-[#dfd9cd]">
+                  <CheckCircle2 className="w-6 h-6 text-stone-400 mx-auto" />
+                  <p className="text-xs font-bold text-stone-700">No matching contracts in workspace</p>
+                  <p className="text-[11px] text-stone-500 italic">Try adjusting your search criteria or ingest a new document.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-[#ece7dd]">
+                  {filteredContracts.map((contract) => {
+                    const highFlags = contract.risk_flags.filter(f => f.severity === 'HIGH').length;
+                    const medFlags = contract.risk_flags.filter(f => f.severity === 'MEDIUM').length;
+
+                    return (
+                      <div
+                        key={contract.id}
+                        className="py-4 px-2 rounded hover:bg-[#f5f2eb] transition flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      >
+                        <div className="space-y-1.5 min-w-0">
+                          <div className="flex items-center space-x-2.5">
+                            <h4 className="text-sm font-bold text-stone-900 truncate max-w-md">
+                              {contract.title}
+                            </h4>
+                            <span className="text-[11px] text-stone-500 bg-[#ede8df] px-1.5 py-0.5 rounded">
+                              v{contract.version}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-2 text-xs text-stone-600">
+                            <span className="font-semibold text-stone-800">{contract.contract_type}</span>
+                            <span>·</span>
+                            <span>{contract.clauses.length} clauses</span>
+                            <span>·</span>
+                            <span>Uploaded by <strong className="text-stone-800">{contract.uploaded_by}</strong></span>
+                            <span>·</span>
+                            <span className="italic">{new Date(contract.uploaded_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-4 shrink-0">
+                          <div className="text-right">
+                            <span className={`inline-block text-xs px-2.5 py-1 rounded border ${getScoreBadgeClass(contract.risk_score)}`}>
+                              {contract.risk_score} / 100 Risk
+                            </span>
+                            <div className="text-[11px] text-stone-500 mt-1">
+                              {highFlags > 0 && <span className="text-rose-800 font-bold">{highFlags} High </span>}
+                              {medFlags > 0 && <span className="text-amber-800 font-semibold">{medFlags} Med</span>}
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => onSelectContract(contract)}
+                            className="flex items-center space-x-1.5 px-3.5 py-2 rounded bg-[#f3efe6] hover:bg-stone-900 hover:text-[#f6f4ef] border border-[#d8d1c2] text-xs font-bold text-stone-800 transition"
+                          >
+                            <span>Inspect</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </FaultIsolationBoundary>
+        </div>
+
+        {/* Right Column (4 cols): Section 5: Remediation Action Ledger */}
+        <div className="lg:col-span-4 space-y-4">
+          <FaultIsolationBoundary sectionTitle="Remediation Ledger" sectionCode="SEC-04">
+            <section className="bg-[#fbfaf7] border border-[#dfd9cd] rounded-lg p-6 space-y-4 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-[#ece7dd]">
+                <div className="flex items-center space-x-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-800" />
+                  <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wide">
+                    Remediation Ledger
+                  </h3>
+                </div>
+                <span className="text-xs font-bold text-stone-500 bg-[#ede8df] px-2 py-0.5 rounded">
+                  {remediations.length} logged
+                </span>
+              </div>
+
+              {remediations.length === 0 ? (
+                <div className="p-8 text-center text-stone-500 space-y-1 bg-[#f6f4ef] rounded border border-[#dfd9cd]">
+                  <p className="text-xs font-bold text-stone-700">No remediations logged yet</p>
+                  <p className="text-[11px] text-stone-500 italic">Apply alternative clauses in the Legal Auditor to register risk reductions.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {remediations.slice(0, 5).map((rem) => (
+                    <div
+                      key={rem.id}
+                      className="p-3.5 rounded bg-[#f5f2eb] border border-[#e2ddd1] space-y-2"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-stone-900 truncate max-w-[170px]" title={rem.contractTitle}>
+                          {rem.contractTitle}
+                        </span>
+                        <span className="text-[11px] text-emerald-900 font-bold px-2 py-0.5 rounded bg-emerald-100 border border-emerald-300">
+                          -{rem.riskReduction} Risk
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-stone-600 flex items-center space-x-1.5">
+                        <span className="font-bold text-stone-800">Clause {rem.clauseNumber}</span>
+                        <span>·</span>
+                        <span className="truncate">{rem.category}</span>
+                      </div>
+
+                      <div className="text-xs text-stone-700 italic bg-[#fbfaf7] p-2.5 rounded border border-[#e0dad0] leading-relaxed">
+                        "{rem.remediatedSnippet}"
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-stone-500 pt-1 border-t border-[#eae5da]">
+                        <span>Applied by <strong className="text-stone-700">{rem.appliedBy}</strong></span>
+                        <span className="italic">{rem.timestamp}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </FaultIsolationBoundary>
         </div>
       </div>
     </div>
